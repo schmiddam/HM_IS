@@ -1,0 +1,231 @@
+#Clear all
+rm(list = ls())
+
+#libraries
+library(janitor)
+library(psych)
+library(car)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(hrbrthemes)
+library(matlib)
+library(xlsx)
+library(tibble)
+library(coin)
+library(data.table)
+
+#Daten einlesen
+survey <- read.csv("survey_results.csv")
+survey <- fread("")
+
+#Transformationen
+#transpose table
+survey2 <- t(survey)
+#row becomes column name
+survey3 <- row_to_names(survey2, row_number = 1)
+
+
+setDT(survey3)
+is.data.table()
+
+survey4 <-as.data.frame(survey3)
+
+#Daten für statistische Tests gruppieren
+
+Anthro1 <- data.frame("Anthro1NA" = as.numeric(as.character(survey4$Anthro1NA)), "Anthro1WA" = as.numeric(as.character(survey4$Anthro1WA)),
+                      "Anthro1SA" = as.numeric(as.character(survey4$Anthro1SA)))
+Anthro3 <- data.frame("Anthro3NA" = as.numeric(as.character(survey4$Anthro3NA)), "Anthro3WA" = as.numeric(as.character(survey4$Anthro3WA)),
+                      "Anthro1SA" = as.numeric(as.character(survey4$Anthro3SA)))
+Anthro5 <- data.frame("Anthro5NA" = as.numeric(as.character(survey4$Anthro5NA)), "Anthro5WA" = as.numeric(as.character(survey4$Anthro5WA)),
+                      "Anthro5SA" = as.numeric(as.character(survey4$Anthro5SA)))
+SocialPresence <- data.frame("SocialPresenceNA" = as.numeric(as.character(survey4$SocialPresenceNA)), "SocialPresenceWA" = as.numeric(as.character(survey4$SocialPresenceWA)),
+                             "SocialPresenceSA" = as.numeric(as.character(survey4$SocialPresenceSA)))
+Agency <- data.frame("AgencyNA" = as.numeric(as.character(survey4$AgencyNA)), "AgencyWA" = as.numeric(as.character(survey4$AgencyWA)),
+                     "AgencySA" = as.numeric(as.character(survey4$AgencySA)))
+Attraktivitaet <- data.frame("AttraktivitaetNA" = as.numeric(as.character(survey4$AttraktivitaetNA)), "AttraktivitaetWA" = as.numeric(as.character(survey4$AttraktivitaetWA)),
+                             "AttraktivitaetSA" = as.numeric(as.character(survey4$AttraktivitaetSA)))
+Kundenorientierung <- data.frame("KundenorientierungNA" = as.numeric(as.character(survey4$KundenorientierungNA)), "KundenorientierungWA" = as.numeric(as.character(survey4$KundenorientierungWA)),
+                                 "KundenorientierungSA" = as.numeric(as.character(survey4$KundenorientierungSA)))
+Alle <- list(Anthro1, Anthro3, Anthro5, SocialPresence, Agency, Attraktivitaet, Kundenorientierung)
+
+Anthro1BE <- stack(Anthro1)
+Anthro3BE <- stack(Anthro3)
+Anthro5BE <- stack(Anthro5)
+SocialPresenceBE <- stack(SocialPresence)
+AgencyBE <- stack(Agency)
+AttraktivitaetBE <- stack(Attraktivitaet)
+KundenorientierungBE <- stack(Kundenorientierung)
+
+
+ErfahrungBank <- as.character(survey4$ErfahrungBank)
+Anthro1BE <- add_column(Anthro1BE, ErfahrungBank =rep(ErfahrungBank, times=3), .after = 4)
+Anthro3BE <- add_column(Anthro3BE,  ErfahrungBank =rep(ErfahrungBank, times=3), .after = 4)
+Anthro5BE <- add_column(Anthro5BE,  ErfahrungBank =rep(ErfahrungBank, times=3), .after = 4)
+SocialPresenceBE <- add_column(SocialPresenceBE,  ErfahrungBank =rep(ErfahrungBank, times=3), .after = 4)
+AgencyBE <- add_column(AgencyBE,  ErfahrungBank =rep(ErfahrungBank, times=3), .after = 4)
+AttraktivitaetBE <- add_column(AttraktivitaetBE,  ErfahrungBank =rep(ErfahrungBank, times=3), .after = 4)
+KundenorientierungBE <- add_column(KundenorientierungBE,  ErfahrungBank =rep(ErfahrungBank, times=3), .after = 4)
+
+#Entferne Columns wo keine Bankerfahrung angegeben ist
+Anthro1BE <- Anthro1BE[!(is.na(Anthro1BE$ErfahrungBank) | Anthro1BE$ErfahrungBank==""), ]
+Anthro3BE <- as.data.frame(Anthro3BE[!Anthro3BE$ErfahrungBank == "",])
+Anthro5BE <- Anthro5BE[!Anthro5BE$ErfahrungBank == "",]
+SocialPresenceBE <- SocialPresenceBE[!SocialPresenceBE$ErfahrungBank == "",]
+AgencyBE <- AgencyBE[!AgencyBE$ErfahrungBank == "",]
+AttraktivitaetBE <- AttraktivitaetBE[!AttraktivitaetBE$ErfahrungBank == "",]
+KundenorientierungBE <- KundenorientierungBE[!KundenorientierungBE$ErfahrungBank == "",]
+
+Alle <- list(Anthro1BE, Anthro3BE, Anthro5BE, SocialPresenceBE,AttraktivitaetBE, KundenorientierungBE, AgencyBE)
+
+##Diagramme
+#Histogramme aller Measures
+breaks = seq(from = 1, to = 5, by = 0.5)
+j = 0
+for (i in Alle){
+  j = j + 1
+  names <- c("Anthro1BE", "Anthro3BE", "Anthro5BE", "SocialPresenceBE", "AgencyBE", "AttraktivitaetBE", "KundenorientierungBE")
+  png(file=paste("C:/Users/charl/Desktop/Bilder/Hist", names[j] , "MitErfahrung.png", sep=""),
+      width=600, height=350)
+    hist(i[i$ErfahrungBank == "Ja",]$values, breaks = breaks, main = paste("Histogramm mit Erfahrung von" , names[j]), xlab = names[j], ylab = "Häufigkeit")
+    dev.off()
+    png(file=paste("C:/Users/charl/Desktop/Bilder/Hist", names[j], "OhneErfahrung.png", sep=""),
+        width=600, height=350)
+    hist(i[i$ErfahrungBank == "Nein",]$values, breaks = breaks, main = paste("Histogramm ohne Erfahrung von" , names[j]), xlab = names[j], ylab = "Häufigkeit")
+    dev.off()
+}
+
+#Boxplots
+
+plots <- list()
+plots[[1]] <- ggboxplot(Anthro1BE, x = "ErfahrungBank", y = "values", add.params = list(color = "grey50", size = 1), xlab = " ", ylab = "Antworten Fragebogen", title = "Anthro1") + theme( plot.title = element_text(hjust = 0.5), text = element_text(size = 18))
+plots[[2]] <- ggboxplot(Anthro3BE, x = "ErfahrungBank", y = "values", add.params = list(color = "grey50", size = 1), xlab = " ", ylab = "Antworten Fragebogen", title = "Anthro3") + theme( plot.title = element_text(hjust = 0.5), text = element_text(size = 18))
+plots[[3]] <- ggboxplot(Anthro5BE, x = "ErfahrungBank", y = "values", add.params = list(color = "grey50", size = 1), xlab = " ", ylab = "Antworten Fragebogen", title = "Anthro5") + theme( plot.title = element_text(hjust = 0.5), text = element_text(size = 18))
+plots[[4]] <- ggboxplot(SocialPresenceBE, x = "ErfahrungBank", y = "values", add.params = list(color = "grey50", size = 1), xlab = " ", ylab = "Antworten Fragebogen", title = "SocialPresence") + theme( plot.title = element_text(hjust = 0.5), text = element_text(size = 18))
+plots[[5]] <- ggboxplot(AgencyBE, x = "ErfahrungBank", y = "values", add.params = list(color = "grey50", size = 1), xlab = " ", ylab = "Antworten Fragebogen", title = "Agency") + theme( plot.title = element_text(hjust = 0.5), text = element_text(size = 18))
+plots[[6]] <- ggboxplot(AttraktivitaetBE, x = "ErfahrungBank", y = "values", add.params = list(color = "grey50", size = 1), xlab = " ", ylab = "Antworten Fragebogen", title = "Attraktivität") + theme( plot.title = element_text(hjust = 0.5), text = element_text(size = 18))
+plots[[7]] <- ggboxplot(KundenorientierungBE, x = "ErfahrungBank", y = "values", add.params = list(color = "grey50", size = 1), xlab = " ", ylab = "Antworten Fragebogen", title = "Kundenorientierung") + theme( plot.title = element_text(hjust = 0.5), axis.text.x = element_text(size = 13), text = element_text(size = 18))
+
+
+j = 0
+for (i in plots){
+  j = j+1
+  png(file=paste("C:/Users/charl/Desktop/Bilder/BankErfahrung3", paste(j), "Boxplot.png", sep=""),
+      width=600, height=350)
+  i
+  dev.off()
+}
+
+count(Anthro1BE[(Anthro1BE$ind == "Anthro1NA" & Anthro1BE$ErfahrungBank == "Ja"),])
+subset(Anthro1BE, (Anthro1BE$ind == "Anthro1NA") & (Anthro1BE$ErfahrungBank == "Ja") )
+
+df <- data.frame(f1=factor(rbinom(100, 1, 0.45), label=c("m","w")),
+                 f2=factor(rbinom(100, 1, 0.45), label=c("young","old")),
+                 boxthis=rnorm(100))
+
+Anthro1BE$indErfahrungBank <- interaction(Anthro1BE$ind, Anthro1BE$ErfahrungBank)
+
+ggplot(aes(y = values, x = indErfahrungBank), data = Anthro1BE) + geom_boxplot()
+
+##Zusammenfassung der Items
+
+ZusammenFassungItems <- data.frame("Name" = NA, "Mittelwert" = NA, "Median" = NA, "Min" = NA, "Max" = NA, stringsAsFactors = FALSE)
+j = 0
+for (i in Alle){
+  i$variante <- as.factor(c(rep("NA", 76), rep("WA", 76), rep("SA", 76)))
+  j = j + 1
+  names <- c("Anthro1BE", "Anthro3BE", "Anthro5BE", "SocialPresenceBE", "AgencyBE", "AttraktivitaetBE", "KundenorientierungBE")
+    for (vari in c("NA", "WA", "SA")){
+      for(Ber in c("Ja", "Nein")){
+      i2 <- i[i$variante == vari & i$ErfahrungBank == Ber,]
+      Name <- paste(names[j], vari, Ber)
+      Mittelwert <- round(mean(i2$values, 1))
+      Median <- round(median(i2$values, na.rm = FALSE ),1)
+      Min <- round(min(i2$values, 1))
+      Max <- round(max(i2$values, 1))
+      ZusammenFassungItems <- rbind(ZusammenFassungItems, c(Name, Mittelwert, Median, Min, Max))
+    }
+  }
+}
+
+ZusammenFassungItemsKurz <- data.frame("Name" = NA, "Mittelwert" = NA, "Median" = NA, "Min" = NA, "Max" = NA, stringsAsFactors = FALSE)
+j = 0
+for (i in Alle){
+  i$variante <- as.factor(c(rep("NA", 76), rep("WA", 76), rep("SA", 76)))
+  j = j + 1
+  names <- c("Anthro1BE", "Anthro3BE", "Anthro5BE", "SocialPresenceBE", "AgencyBE", "AttraktivitaetBE", "KundenorientierungBE")
+    for(Ber in c("Ja", "Nein")){
+      i2 <- i[ i$ErfahrungBank == Ber,]
+      Name <- paste(names[j], Ber)
+      Mittelwert <- round(mean(i2$values, 1))
+      Median <- round(median(i2$values, na.rm = FALSE ),1)
+      Min <- round(min(i2$values, 1))
+      Max <- round(max(i2$values, 1))
+      ZusammenFassungItemsKurz <- rbind(ZusammenFassungItems, c(Name, Mittelwert, Median, Min, Max))
+    }
+}
+
+
+# Mann-Whitney-U-Test f?r unverbundene Stichproben
+
+#Dataframes zur Resultatsabspeicherung
+resultsEffectSize <- data.frame("name","group1", "group2", "effsize", "magnitude", stringsAsFactors = FALSE)
+resultsWilcoxon <- data.frame( "name","zWert", "pWert", stringsAsFactors = FALSE)
+
+j = 0
+
+for(i in Alle){
+  j = j + 1
+  names <- c("Anthro1BE", "Anthro3BE", "Anthro5BE", "SocialPresenceBE", "AgencyBE", "AttraktivitaetBE", "KundenorientierungBE")
+  i$ErfahrungBank <- as.factor(i$ErfahrungBank)
+  i$id <- as.factor(rep(1:76, 3))
+  # pairwise comparisons (Bonferroni/Wilcoxon)
+  pwc <- wilcox_test(i$values ~ i$ErfahrungBank , paired = FALSE)
+
+  resultsWilcoxon <-rbind(resultsWilcoxon, c(names[j],statistic(pwc), pvalue(pwc)))
+
+  #Effect Size
+  res.effectsize <- i %>% wilcox_effsize(values ~ ErfahrungBank)
+  newEffectSize <- c(names[j],as.character(res.effectsize$group1), as.character(res.effectsize$group2), as.character(res.effectsize$effsize),  as.character(res.effectsize$magnitude))
+  resultsEffectSize <-rbind(resultsEffectSize, newEffectSize)
+  #schwach, moderat oder stark
+
+}
+
+#Aufteilung nach NA, WA, SA
+resultsEffectSize2 <- data.frame("name","group1", "group2", "effsize", "magnitude", stringsAsFactors = FALSE)
+resultsWilcoxon2 <- data.frame( "name","zWert", "pWert", stringsAsFactors = FALSE)
+
+
+j = 0
+for(i in Alle){
+  j = j + 1
+  names <- c("Anthro1BE", "Anthro3BE", "Anthro5BE", "SocialPresenceBE", "AgencyBE", "AttraktivitaetBE", "KundenorientierungBE")
+  i$ErfahrungBank <- as.factor(i$ErfahrungBank)
+  i$variante <- as.factor(c(rep("NA", 76), rep("WA", 76), rep("SA", 76)))
+  i$id <- as.factor(rep(1:76, 3))
+
+  for(vari in c("NA", "WA", "SA")){
+  i2 <- i[i$variante == vari,]
+  # pairwise comparisons (Bonferroni/Wilcoxon)
+  pwc <- wilcox_test(i2$values ~ i2$ErfahrungBank , paired = FALSE)
+
+  resultsWilcoxon2 <-rbind(resultsWilcoxon2, c(paste(names[j], vari),statistic(pwc), pvalue(pwc)))
+
+  #Effect Size
+  res.effectsize <- i2 %>% wilcox_effsize(values ~ ErfahrungBank)
+  newEffectSize <- c(paste(names[j], vari),as.character(res.effectsize$group1), as.character(res.effectsize$group2), as.character(res.effectsize$effsize),  as.character(res.effectsize$magnitude))
+  resultsEffectSize2 <-rbind(resultsEffectSize2, newEffectSize)
+  #schwach, moderat oder stark
+  }
+}
+
+#Exportieren
+
+write.xlsx(resultsWilcoxon, file="ResultsErfahrungBeratung.xlsx", sheetName="Mann-Whitney", row.names=FALSE)
+write.xlsx(resultsEffectSize, file="ResultsErfahrungBeratung.xlsx", sheetName="EffectSize", append=TRUE, row.names=FALSE)
+write.xlsx(resultsEffectSize2, file="ResultsErfahrungBeratung.xlsx", sheetName="resultsEffectSize2", append=TRUE, row.names=FALSE)
+write.xlsx(resultsWilcoxon2, file="ResultsErfahrungBeratung.xlsx", sheetName="resultsWilcoxon2", append=TRUE, row.names=FALSE)
+write.xlsx(ZusammenFassungItems, file="ResultsErfahrungBeratung.xlsx", sheetName="ZusammenFassungItems", append=TRUE, row.names=FALSE)
+write.xlsx(ZusammenFassungItemsKurz, file="ResultsErfahrungBeratung.xlsx", sheetName="ZusammenFassungItemsKurz", append=TRUE, row.names=FALSE)
+

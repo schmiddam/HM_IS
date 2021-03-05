@@ -1,0 +1,15 @@
+install.packages("janitor")
+library(janitor)
+install.packages("data.table")
+library(data.table)
+install.packages("lubridate")
+library(lubridate)
+
+
+data <- fread("survey_results_manualclean_nocheaters.csv")
+typeof(data)
+data <- data[rowSums(is.na(data)) != ncol(data),]
+data %>% remove_empty("rows")
+
+differenz <- data$KompetenzNA - data$KompetenzBeraterNA
+View(data)

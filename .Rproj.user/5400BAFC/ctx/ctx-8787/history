@@ -1,0 +1,512 @@
+resultsLeveneTestLog <- leveneTest(values, group)
+resultsLeveneTestLog$`Pr(>F)`
+#Teste auf Spherität mit Mauchly
+abc  <- stack(i)
+abc$id <- as.factor(rep(1:78, 3))
+resultsAnova <- anova_test(data = abc, dv = values, wid = id, within = ind)
+#Teste auf Spherität mit Mauchly
+abc$values <- log(abc$values)
+resultsAnovaLog <- anova_test(data = abc, dv = values, wid = id, within = ind)
+newResults <- c(paste(colnames(i[y])), as.character(resultShapiro$p.value), as.character(resultShapiroLog$p.value), as.character(resultsLeveneTest$`Pr(>F)`), as.character(resultsLeveneTestLog$`Pr(>F)`), as.character(resultsAnova$`Mauchly's Test for Sphericity`$p),as.character(resultsAnovaLog$`Mauchly's Test for Sphericity`$p))
+resultsPreT <- rbind(resultsPreT, newResults)
+}
+}
+#Interpretation der verschiedenen Resultate
+resultsPreT2 <- resultsPreT
+resultsPreT2$X.Homoskedastie. <- NULL
+resultsPreT2$X.NA. <- NULL
+resultsPreT2$X.HomoskedastieLog. <- NULL
+resultsPreT2$X.NA..1 <- NULL
+resultsPreT2 <- resultsPreT2[-c(1),]
+resultsPreT2$X.Shapi
+ro.p.Value.[as.numeric(resultsPreT2$X.Shapiro.p.Value.) > 0.05] <- "Gut"
+resultsPreT2$X.Shapiro.Log.p.Value.[as.numeric(resultsPreT2$X.Shapiro.Log.p.Value.) > 0.05] <- "Gut"
+resultsPreT2$X.pWert.Mauchly.[as.numeric(resultsPreT2$X.pWert.Mauchly.) < 0.05] <- "Gut"
+resultsPreT2$X.pWert.Mauchly.Log.[as.numeric(resultsPreT2$X.pWert.Mauchly.Log.) < 0.05] <- "Gut"
+resultsPreT2
+#Interpretation: Bei fast allen Variablen ausser Anthro3WA, Anthro5NA, AttraktivitaetNA und AttrativitaetWA kann eine
+#annähernde Normalverteilung durch Logarithmisierung angenommen werden. Trotzdem fallen ein Grossteil der Variablen durch
+#den Levene-Test, wodurch keine Gleichverteilung der Varianzen angenommen werden kann.
+# -> Es wird auf den Friedmann-Test ausgewichen, da dieser keine Annahmen über Verteilungen und Varianzen macht. (dafür etwas weniger statistische Power hat)
+##Friedman Test durchführen
+#per Schleife, Ergebnisse gleich abspeichern
+#Friedmann test
+#Dataframes zur Resultatsabspeicherung
+resultsFriedmann <- data.frame("name", "n", "statistics", "df", "p", stringsAsFactors = FALSE)
+resultsEffectSize <- data.frame("name", "n", "effsize", "method", "magnitude", stringsAsFactors = FALSE)
+resultsWilcoxon <- data.frame( "name","group1", "group2","n1","n2", "statistic", "p", "p.adj", "p.adj.signif", stringsAsFactors = FALSE)
+resultsSignTest <- data.frame("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", stringsAsFactors = FALSE)
+resultsDunnTest <- data.frame("MeanRankDiff", "pval", "RowNames", "Verteilung", stringsAsFactors = FALSE)
+#Friedman Test und Post-Hoc Tests: Dunn-Bonferroni-Tests zum Finden der abweichenden Verteilungen und Cohen zur Bestimmung der Effektstärke
+j = 0
+for(i in Alle){
+j = j+1
+#Vorbereitung Daten
+means2<- stack(i)
+means2$id <- as.factor(rep(1:78, 3))
+means2$ind <- as.factor(means2$ind)
+#Friedmann Test
+res.fried <- means2 %>% friedman_test(values ~ ind |id)
+newFriedmann <- c(colnames(i[1]),as.character(res.fried$n), as.character(res.fried$statistic), as.character(res.fried$df), as.character(res.fried$p))
+resultsFriedmann <- rbind(resultsFriedmann, newFriedmann)
+#p kleiner als 0.05 -> dann ist Unterschied signifikant
+#DunnTest
+newDunnTest <- DunnTest(i, list=TRUE)
+newDunnTest <- data.frame(newDunnTest[1])
+newDunnTest$rowNames <- row.names(newDunnTest)
+newDunnTest$Verteilung <- names(i)
+names(newDunnTest) <- names(resultsDunnTest)
+resultsDunnTest <-rbind(resultsDunnTest, newDunnTest)
+#Effect Size
+res.effectsize <- means2 %>% friedman_effsize(values ~ ind |id)
+newEffectSize <- c(colnames(i[1]),as.character(res.effectsize$n), as.character(res.effectsize$effsize), as.character(res.effectsize$method), as.character(res.effectsize$magnitude))
+resultsEffectSize <-rbind(resultsEffectSize, newEffectSize)
+#schwach, moderat oder stark
+# pairwise comparisons (Bonferroni/Wilcoxon)
+pwc <- means2 %>%
+wilcox_test(values ~ ind , paired = TRUE, p.adjust.method = "bonferroni")
+names(resultsWilcoxon) <- names(pwc)
+resultsWilcoxon <-do.call("rbind", list(resultsWilcoxon, pwc[1,], pwc[2,], pwc[3,]))
+#je mehr Sternchen, desto signifikanter die Abweichung der einzelnen Verteilung
+# pairwise comparisons (Sign Test) -> Macht weniger statistische Annahmen, hat aber auch weniger Power
+pwc2 <- means2 %>%
+sign_test(values ~ ind, p.adjust.method = "bonferroni")
+pwc2
+names(resultsSignTest) <- names(pwc2)
+resultsSignTest <-do.call("rbind", list(resultsSignTest, pwc2[1,], pwc2[2,], pwc2[3,]))
+#je mehr Sternchen, desto signifikanter die Abweichung der einzelnen Verteilung
+}
+##Faktoranalyse: Kann man auch einige Variablen zusammenfassen? (-> Hauptkomponentenanalyse)
+#Datensets vorbereiten
+AnthroNA <- data.frame("Anthro1NA" = as.numeric(as.character(survey4$Anthro1NA)), "Anthro3NA" = as.numeric(as.character(survey4$Anthro3NA)),
+"Anthro5NA" = as.numeric(as.character(survey4$Anthro5NA)), "SocialPresenceNA" = as.numeric(as.character(survey4$SocialPresenceNA)),
+"AgencyNA" = as.numeric(as.character(survey4$AgencyNA)))
+AnthroWA <- data.frame("Anthro1WA" = as.numeric(as.character(survey4$Anthro1WA)), "Anthro3WA" = as.numeric(as.character(survey4$Anthro3WA)),
+"Anthro5WA" = as.numeric(as.character(survey4$Anthro5WA)), "SocialPresenceWA" = as.numeric(as.character(survey4$SocialPresenceWA)),
+"AgencyWA" = as.numeric(as.character(survey4$AgencyWA)))
+AnthroSA <-data.frame("Anthro1SA" = as.numeric(as.character(survey4$Anthro1SA)), "Anthro3SA" = as.numeric(as.character(survey4$Anthro3SA)),
+"Anthro5SA" = as.numeric(as.character(survey4$Anthro5SA)), "SocialPresenceSA" = as.numeric(as.character(survey4$SocialPresenceSA)),
+"AgencySA" = as.numeric(as.character(survey4$AgencySA)))
+AttraktivitaetNA <- data.frame("AttraktivitaetNA" = as.numeric(as.character(survey4$AttraktivitaetNA)),"KundenorientierungNA" = as.numeric(as.character(survey4$KundenorientierungNA)))
+AttraktivitaetWA <- data.frame("AttraktivitaetWA" = as.numeric(as.character(survey4$AttraktivitaetWA)),"KundenorientierungWA" = as.numeric(as.character(survey4$KundenorientierungWA)))
+AttraktivitaetSA <- data.frame("AttraktivitaetSA" = as.numeric(as.character(survey4$AttraktivitaetSA)),"KundenorientierungSA" = as.numeric(as.character(survey4$KundenorientierungSA)))
+AlleF <- list(AnthroNA, AnthroWA, AnthroSA, AttraktivitaetNA, AttraktivitaetWA, AttraktivitaetSA)
+#Variablenauswahl: Können anthropomorphe Variablen zusammengefasst werden?
+# sollen anthropomorphe Variablen mit Agency zusammengefasst werden?
+# sollen Kundenorientierung und Attraktivitaet zusammengefasst werden?
+#Bivariate Korrelation
+for (i in AlleF){
+covM <- print(cor(i,method = "spearman"))
+covM[covM > 0.5] <- "S"
+covM[covM > 0.3] <- "M"
+print(covM) #Die Buchstaben S und M sollen dabei helfen, Ergebnisse zu interpretieren.
+#Nach Cohen 1992 entspricht S einem starken und M einem mittleren Effekt
+print(inv(cov(i)))
+}
+#Cov f?r zusammengefasste Anthro Variablen
+AlleAnthro <- AnthroNA
+names(AnthroWA) <- names(AlleAnthro)
+names(AnthroSA) <- names(AlleAnthro)
+AlleAnthro <- rbind(rbind(AnthroNA, AnthroWA), AnthroSA)
+covM <- cor(AlleAnthro,method = "spearman")
+covM[covM > 0.5] <- "S"
+covM[covM > 0.3] <- "M"
+covM #Die Buchstaben S und M sollen dabei helfen, Ergebnisse zu interpretieren.
+#Nach Cohen 1992 entspricht S einem starken und M einem mittleren Effekt
+#Ergebnisse: Laut der Korrelationsmatritzen zu Anthropomorphismus zeigt sich, dass Anthro5 nur schwach mit den
+#anderen Variablen korreliert. Die restlichen Variablen weisen aber einen mittleren Effekt auf -> wiederhole ohne Anthro5
+#Auch scheint Agency mittelstark mit Anthropomorphismus zu korrelieren. Kundenorientierung und Attraktivitaet korrelieren nicht.
+AnthroNA$Anthro5NA <- NULL
+AnthroWA$Anthro5WA <- NULL
+AnthroSA$Anthro5SA <- NULL
+AlleAnthro$Anthro5NA <- NULL
+Anthro <- list(AnthroNA, AnthroWA, AnthroSA)
+for (i in Anthro){
+covM <- print(cor(i,method = "spearman"))
+covM[covM > 0.5] <- "S"
+covM[covM > 0.3] <- "M"
+print(covM) #Die Buchstaben S und M sollen dabei helfen, Ergebnisse zu interpretieren.
+#Nach Cohen 1992 entspricht S einem starken und M einem mittleren Effekt
+}
+#Es treten überall mittlere Effekte auf;
+#Was soll nun potentiell gruppiert werden? Besonders für die Korrelationsanalyse soll getestet werden,
+#Ob die Variablen aus der Anthroliste gruppierbar sind
+#KMO-Wert
+for (i in Anthro){
+print(KMO(i))
+}
+#Mit ca. 0.8 im Schnitt und keinem Wert unter 0.74 ist der KMO wert deutlich grösser als 0.6 -> Weiterfahren
+KMO(AlleAnthro)
+#Bartlett-Test: auf diesen wird verzichtet, da Normalverteilung nicht vorrausgesetzt werden kann
+#Kommunalitäten
+#Kaiserkriterium
+#Screeplot
+PCA <- principal(AnthroNA)
+PCA$scores
+PCA$loadings
+AnthroNA*PCA$loadings
+a <- as.matrix(load[,1])
+crossprod(t(as.matrix(AnthroNA)), as.matrix(load[,1]))
+crossprod(b,t(c))
+load <- PCA$loadings
+class(load[,1])
+##Vorraussetzungen t-tests überprüfen
+names(AnthroNA) <- c("Anthro1", "Anthro3", "SocialPresence", "Agency")
+names(AnthroWA) <- c("Anthro1", "Anthro3", "SocialPresence", "Agency")
+names(AnthroSA) <- c("Anthro1", "Anthro3", "SocialPresence", "Agency")
+AnthroAlle <-  rbind(rbind(AnthroNA, AnthroWA), AnthroSA)
+AnthroAlle$factor <- as.factor(c(rep("NA", 78),rep("WA", 78),rep("SA", 78)))
+PCA <- principal(AnthroAlle)
+plot(PCA$scores, AnthroAlle$SocialPresence)
+PCA$rot.matrix
+NewScores <- PCA$scores
+NewScores2 <- NewScores - min(NewScores) #Sollen bei 0 beginnen, weil es schöner aussieht
+plot(NewScores, NewScores2)
+AnthroPCA <- data.frame("AnthroPCA" = NewScores2)
+AnthroPCA$factor<- as.factor(c(rep("NA", 78),rep("WA", 78),rep("SA", 78)))
+##Für AnthroPCA: Histogramme, Boxplots, Friedmann-Test
+#Histogramme
+breaks = seq(from = 0, to = 5, by = 0.5)
+for (y in c("NA", "WA", "SA")){
+png(file=paste("AnthroPCA", y , ".png", sep=""),
+width=600, height=350)
+hist( data.frame(AnthroPCA[AnthroPCA$factor == y,])$PC1 , breaks = breaks, main = paste("Histogramm von AnthroPCA" ,y, ""), xlab = y, ylab = "Häufigkeit")
+dev.off()
+}
+#Boxplot
+#Reihenfolge festlegen
+AnthroPCA$factor2 <- factor(AnthroPCA$factor, levels = c("NA", "WA", "SA"))
+png(file=paste("AnthroPCA","BoxplotJitter" , ".png", sep=""), width=600, height=350)
+ggboxplot(AnthroPCA, x = "factor2", y = "PC1", add.params = list(color = "grey50", size = 1), xlab = " ", ylab = "Antworten Fragebogen", title = "AnthroPCA", add = "jitter") + theme(axis.title.y =element_text(size=12, vjust = 3), plot.title = element_text(hjust = 0.5))
+dev.off()
+#Friedmann
+#Friedmann test
+#Friedmann
+AnthroPCA$id <- as.factor(rep(1:78, 3))
+res.fried <- AnthroPCA %>% friedman_test(PC1 ~ factor|id)
+newFriedmann <- c("AnthroPCA",as.character(res.fried$n), as.character(res.fried$statistic), as.character(res.fried$df), as.character(res.fried$p))
+resultsFriedmann <- rbind(resultsFriedmann, newFriedmann)
+#Effect Size
+res.effectsize <- AnthroPCA %>% friedman_effsize(PC1 ~ factor|id)
+newEffectSize <- c("AnthroPCA",as.character(res.effectsize$n), as.character(res.effectsize$effsize), as.character(res.effectsize$method), as.character(res.effectsize$magnitude))
+resultsEffectSize <-rbind(resultsEffectSize, newEffectSize)
+#schwach, moderat oder stark
+#DunnTest
+AnthroPCA2 <- data.frame("NA" = AnthroPCA[AnthroPCA$factor == "NA",]$PC1, "WA" = AnthroPCA[AnthroPCA$factor == "WA",]$PC1, "SA" = AnthroPCA[AnthroPCA$factor == "SA",]$PC1,  stringsAsFactors = FALSE)
+newDunnTest <-   DunnTest(AnthroPCA2, list=TRUE)
+newDunnTest <- data.frame(newDunnTest[1])
+newDunnTest$rowNames <- row.names(newDunnTest)
+newDunnTest$Verteilung <- names(AnthroPCA2)
+names(newDunnTest) <- names(resultsDunnTest)
+resultsDunnTest <-rbind(resultsDunnTest, newDunnTest)
+# pairwise comparisons (Bonferroni)
+pwc <- AnthroPCA %>%
+wilcox_test(PC1 ~ factor , paired = TRUE, p.adjust.method = "bonferroni")
+names(resultsBonferroni) <- names(pwc)
+resultsBonferroni <-do.call("rbind", list(resultsBonferroni, pwc[1,], pwc[2,], pwc[3,]))
+#je mehr Sternchen, desto signifikanter die Abweichung der einzelnen Verteilung
+# pairwise comparisons (Sign Test) -> Macht weniger statistische Annahmen, hat aber auch weniger Power
+pwc2 <- AnthroPCA %>%
+sign_test(PC1 ~ factor, p.adjust.method = "bonferroni")
+pwc2
+names(resultsSignTest) <- names(pwc2)
+resultsSignTest <-do.call("rbind", list(resultsSignTest, pwc2[1,], pwc2[2,], pwc2[3,]))
+#je mehr Sternchen, desto signifikanter die Abweichung der einzelnen Verteilung
+##Korrelationsanalyse
+#Da trotz Logarithmisierung nicht bei allen Variablen eine Normalverteilung gegeben ist,
+#wird die Rangkorrelation nach Spearman verwendet, welche nur ordinalskalierte Daten und
+#und eine verbundene Stichprobe vorraussetzt
+#Ausserdem sollen bei logistischer oder multipler Korrelation die Inputvariablen nicht zu stark korrelieren
+#Da in der PCA-Analyse aber schon gezeigt werden konnte, dass viele der Inputvariablen stark korrelieren (zB. Agency und Anthro)
+#wird hier die zusammengefasste Variable aus PCA verwendet. Da nun nur noch eine Inputvariable übrig ist, kann Rangkorrelation nach Spearman
+#angewandt werden
+#Daten vorbereiten
+AttraktivitaetS <- stack(Attraktivitaet)
+KundenorientierungS <-stack(Kundenorientierung)
+AttraktivitaetS$factor <- as.factor(c(rep("NA", 78),rep("WA", 78),rep("SA", 78)))
+KundenorientierungS$factor <- as.factor(c(rep("NA", 78),rep("WA", 78),rep("SA", 78)))
+AlleCor <- AnthroPCA
+AlleCor$Attraktivitaet <- AttraktivitaetS$values
+AlleCor$Kundenorientierung <- KundenorientierungS$values
+#Daten plotten
+png(file="KorrelationAttraktivitaet2.png",
+width=600, height=350)
+ggscatter(AlleCor, x = "PC1", y = "Attraktivitaet",
+add = "reg.line", conf.int = TRUE,
+cor.coef = TRUE, cor.method = "pearson",
+xlab = "AnthroPCA", ylab = "Attraktivit?t", title="AnthroPCA und Attraktivit?t der Beratung")+ theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 18))
+dev.off()
+png(file="KorrelationKundenorientierung2.png",
+width=600, height=350)
+ggscatter(AlleCor, x = "PC1", y = "Kundenorientierung",
+add = "reg.line", conf.int = TRUE,
+cor.coef = TRUE, cor.method = "pearson",
+xlab = "AnthroPCA", ylab = "Kundenorientierung", title="AnthroPCA und Kundenorientierung der Beratung")+ theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 18))
+dev.off()
+#Korrelation durchführen
+CorTest1 <- cor.test(AlleCor$PC1, AlleCor$Attraktivitaet, method = "spearman")
+CorTest2 <- cor.test(AlleCor$PC1, AlleCor$Kundenorientierung, method = "spearman")
+CorTestResults <- data.frame("Name" = c("Attraktivitaet", "Kundenorientierung"), "p-Wert" = c(CorTest1$p.value, CorTest2$p.value), "Schaetzung" = c(CorTest1$estimate, CorTest2$estimate), "Bestimmtheitsmass" = c(CorTest1$estimate^2, CorTest2$estimate^2))
+#Beide R^2 entsprechen einem sehr schwachen Effekt
+#Rangkorrelationsanalyse f?r den Zusammenhang der Anthropomorphisierungsversuche und den gemessenen Variablen
+resultsCorTest <- data.frame("Name" = NA, "rho" = NA, "p-Wert" = NA, "BHM" = NA, stringsAsFactors = FALSE)
+for (i in Alle){
+#Vorbereitung
+gestackt <- stack(i)
+gestackt$factor <- c(rep(0, 78),rep(1, 78),rep(2, 78))
+#Korrelation
+CorTestNew <- cor.test(gestackt$factor, gestackt$values, method = "spearman")
+#Bestimmtheitsmass
+CorTestNew$estimate^2
+#Zusammenfassen
+resultsCorTest <- rbind(resultsCorTest, c(names(i)[1], CorTestNew$estimate, CorTestNew$p.value, CorTestNew$estimate^2))
+}
+#Exportieren
+write.xlsx(resultsFriedmann, file="Results.xlsx", sheetName="Friedmann", row.names=FALSE)
+write.xlsx(resultsEffectSize, file="Results.xlsx", sheetName="EffectSize", append=TRUE, row.names=FALSE)
+write.xlsx(resultsWilcoxon, file="Results.xlsx", sheetName="Bonferroni", append=TRUE, row.names=FALSE)
+write.xlsx(resultsSignTest, file="Results.xlsx", sheetName="SignTest", append=TRUE, row.names=FALSE)
+write.xlsx(resultsDunnTest, file="Results.xlsx", sheetName="dunnTest", append=TRUE, row.names=FALSE)
+write.xlsx(ZusammenFassungItems, file="Results.xlsx", sheetName="ZusammenFassungItems", append=TRUE, row.names=FALSE)
+write.xlsx(covM, file="Results.xlsx", sheetName="covM", append=TRUE, row.names=FALSE)
+write.xlsx(resultsPreT2, file="Results.xlsx", sheetName="resultsPreT2", append=TRUE, row.names=FALSE)
+write.xlsx(resultsPreT, file="Results.xlsx", sheetName="resultsPreT", append=TRUE, row.names=FALSE)
+write.xlsx(resultsCorTest, file="Results.xlsx", sheetName="resultsRangCorAnthro", append=TRUE, row.names=FALSE)
+write.xlsx(CorTestResults, file="Results.xlsx", sheetName="CorTestResults", append=TRUE, row.names=FALSE)
+for(i in Alle){
+st <- stack(i)
+print(mean(st$values))
+print(median(st$values))
+}
+hist(stack(AnthroPCA2)$values)
+shapiro.test(stack(AnthroPCA2)$values)
+#Clear all
+rm(list = ls())
+#libraries
+library(janitor)
+library(psych)
+library(car)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(hrbrthemes)
+library(matlib)
+library(xlsx)
+library(dunn.test)
+library(DescTools)
+#Daten einlesen
+survey <- read.csv("survey_results.csv")
+survey2 <- t(survey)
+survey3 <- row_to_names(survey2, row_number = 1)
+survey4 <-as.data.frame(survey3)
+#Daten für statistische Tests gruppieren
+Anthro1 <- data.frame("Anthro1NA" = as.numeric(as.character(survey4$Anthro1NA)), "Anthro1WA" = as.numeric(as.character(survey4$Anthro1WA)),
+"Anthro1SA" = as.numeric(as.character(survey4$Anthro1SA)))
+Anthro3 <- data.frame("Anthro3NA" = as.numeric(as.character(survey4$Anthro3NA)), "Anthro3WA" = as.numeric(as.character(survey4$Anthro3WA)),
+"Anthro3SA" = as.numeric(as.character(survey4$Anthro3SA)))
+Anthro5 <- data.frame("Anthro5NA" = as.numeric(as.character(survey4$Anthro5NA)), "Anthro5WA" = as.numeric(as.character(survey4$Anthro5WA)),
+"Anthro5SA" = as.numeric(as.character(survey4$Anthro5SA)))
+SocialPresence <- data.frame("SocialPresenceNA" = as.numeric(as.character(survey4$SocialPresenceNA)), "SocialPresenceWA" = as.numeric(as.character(survey4$SocialPresenceWA)),
+"SocialPresenceSA" = as.numeric(as.character(survey4$SocialPresenceSA)))
+Agency <- data.frame("AgencyNA" = as.numeric(as.character(survey4$AgencyNA)), "AgencyWA" = as.numeric(as.character(survey4$AgencyWA)),
+"AgencySA" = as.numeric(as.character(survey4$AgencySA)))
+Attraktivitaet <- data.frame("AttraktivitaetNA" = as.numeric(as.character(survey4$AttraktivitaetNA)), "AttraktivitaetWA" = as.numeric(as.character(survey4$AttraktivitaetWA)),
+"AttraktivitaetSA" = as.numeric(as.character(survey4$AttraktivitaetSA)))
+Kundenorientierung <- data.frame("KundenorientierungNA" = as.numeric(as.character(survey4$KundenorientierungNA)), "KundenorientierungWA" = as.numeric(as.character(survey4$KundenorientierungWA)),
+"KundenorientierungSA" = as.numeric(as.character(survey4$KundenorientierungSA)))
+Alle <- list(Anthro1, Anthro3, Anthro5, SocialPresence, Agency, Attraktivitaet, Kundenorientierung)
+##Zusammenfassung der Items
+ZusammenFassungItems <- data.frame("Name" = NA, "Mittelwert" = NA, "Median" = NA, "Min" = NA, "Max" = NA, stringsAsFactors = FALSE)
+for (i in Alle){
+for (y in c(1:3)){
+Name <- colnames(i[y])
+Mittelwert <- round(mean(i[[y]]), 1)
+Median <- round(median(i[[y]], na.rm = FALSE ),1)
+Min <- round(min(i[[y]]), 1)
+Max <- round(max(i[[y]]), 1)
+ZusammenFassungItems <- rbind(ZusammenFassungItems, c(Name, Mittelwert, Median, Min, Max))
+}
+}
+##Diagramme
+#Histogramme aller Measures
+breaks = seq(from = 1, to = 5, by = 0.5)
+for (i in Alle){
+for (y in c(1:3)){
+png(file=paste("~/", colnames(i[y]), ".png", sep=""),
+width=600, height=350)
+hist(i[[y]], breaks = breaks, main = paste("Histogramm von" , colnames(i[y])), xlab = colnames(i[y]), ylab = "Häufigkeit")
+dev.off()
+}
+}
+#Vorraussetzungen T-Tests/Korrelation/Anova überprüfen
+resultsPreT <- data.frame("Name", "Shapiro p-Value", "Shapiro Log p-Value", "Homoskedastie", "NA", "HomoskedastieLog", "NA" , "pWert Mauchly","pWert Mauchly Log", stringsAsFactors = FALSE)
+for(i in Alle){
+for (y in c(1:3)){
+#Teste auf Normalverteilung: Shapiro-Test
+resultShapiro <- shapiro.test(i[[y]])
+# Ein Wert von p < .05 bedeutet, dass wir die Nullhypothese ablehnen - in diesem Fall, dass die Daten nicht normalverteilt sind
+#Falls Normalverteilung nicht gegeben: teste, ob diese durch Transformation (log) erreicht werden kann
+resultShapiroLog <- shapiro.test(log(i[[y]]))
+#Teste auf Homogenität der Varianzen: Levene-Test
+values <- c(i[[1]], i[[2]], i[[3]])
+group <- as.factor(c(rep("NA", 78), rep("WA", 78), rep("SA", 78)))
+resultsLeveneTest <- leveneTest(values, group)
+resultsLeveneTest$`Pr(>F)`
+#Teste auf Homogenität der Varianzen: Levene-Test Log
+values <- c(i[[1]], i[[2]], i[[3]])
+values <- log(values)
+group <- as.factor(c(rep("NA", 78), rep("WA", 78), rep("SA", 78)))
+resultsLeveneTestLog <- leveneTest(values, group)
+resultsLeveneTestLog$`Pr(>F)`
+#Teste auf Spherität mit Mauchly
+abc  <- stack(i)
+abc$id <- as.factor(rep(1:78, 3))
+resultsAnova <- anova_test(data = abc, dv = values, wid = id, within = ind)
+#Teste auf Spherität mit Mauchly
+abc$values <- log(abc$values)
+resultsAnovaLog <- anova_test(data = abc, dv = values, wid = id, within = ind)
+newResults <- c(paste(colnames(i[y])), as.character(resultShapiro$p.value), as.character(resultShapiroLog$p.value), as.character(resultsLeveneTest$`Pr(>F)`), as.character(resultsLeveneTestLog$`Pr(>F)`), as.character(resultsAnova$`Mauchly's Test for Sphericity`$p),as.character(resultsAnovaLog$`Mauchly's Test for Sphericity`$p))
+resultsPreT <- rbind(resultsPreT, newResults)
+}
+}
+#Interpretation der verschiedenen Resultate
+resultsPreT2 <- resultsPreT
+resultsPreT2$X.Homoskedastie. <- NULL
+resultsPreT2$X.NA. <- NULL
+resultsPreT2$X.HomoskedastieLog. <- NULL
+resultsPreT2$X.NA..1 <- NULL
+resultsPreT2 <- resultsPreT2[-c(1),]
+resultsPreT2$X.Shapi
+ro.p.Value.[as.numeric(resultsPreT2$X.Shapiro.p.Value.) > 0.05] <- "Gut"
+resultsPreT2$X.Shapiro.Log.p.Value.[as.numeric(resultsPreT2$X.Shapiro.Log.p.Value.) > 0.05] <- "Gut"
+resultsPreT2$X.pWert.Mauchly.[as.numeric(resultsPreT2$X.pWert.Mauchly.) < 0.05] <- "Gut"
+resultsPreT2$X.pWert.Mauchly.Log.[as.numeric(resultsPreT2$X.pWert.Mauchly.Log.) < 0.05] <- "Gut"
+resultsPreT2
+#Dataframes zur Resultatsabspeicherung
+resultsFriedmann <- data.frame("name", "n", "statistics", "df", "p", stringsAsFactors = FALSE)
+resultsEffectSize <- data.frame("name", "n", "effsize", "method", "magnitude", stringsAsFactors = FALSE)
+resultsWilcoxon <- data.frame( "name","group1", "group2","n1","n2", "statistic", "p", "p.adj", "p.adj.signif", stringsAsFactors = FALSE)
+resultsSignTest <- data.frame("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", stringsAsFactors = FALSE)
+resultsDunnTest <- data.frame("MeanRankDiff", "pval", "RowNames", "Verteilung", stringsAsFactors = FALSE)
+#Friedman Test und Post-Hoc Tests: Dunn-Bonferroni-Tests zum Finden der abweichenden Verteilungen und Cohen zur Bestimmung der Effektstärke
+j = 0
+for(i in Alle){
+j = j+1
+#Vorbereitung Daten
+means2<- stack(i)
+means2$id <- as.factor(rep(1:78, 3))
+means2$ind <- as.factor(means2$ind)
+#Friedmann Test
+res.fried <- means2 %>% friedman_test(values ~ ind |id)
+newFriedmann <- c(colnames(i[1]),as.character(res.fried$n), as.character(res.fried$statistic), as.character(res.fried$df), as.character(res.fried$p))
+resultsFriedmann <- rbind(resultsFriedmann, newFriedmann)
+#p kleiner als 0.05 -> dann ist Unterschied signifikant
+#DunnTest
+newDunnTest <- DunnTest(i, list=TRUE)
+newDunnTest <- data.frame(newDunnTest[1])
+newDunnTest$rowNames <- row.names(newDunnTest)
+newDunnTest$Verteilung <- names(i)
+names(newDunnTest) <- names(resultsDunnTest)
+resultsDunnTest <-rbind(resultsDunnTest, newDunnTest)
+#Effect Size
+res.effectsize <- means2 %>% friedman_effsize(values ~ ind |id)
+newEffectSize <- c(colnames(i[1]),as.character(res.effectsize$n), as.character(res.effectsize$effsize), as.character(res.effectsize$method), as.character(res.effectsize$magnitude))
+resultsEffectSize <-rbind(resultsEffectSize, newEffectSize)
+#schwach, moderat oder stark
+# pairwise comparisons (Bonferroni/Wilcoxon)
+pwc <- means2 %>%
+wilcox_test(values ~ ind , paired = TRUE, p.adjust.method = "bonferroni")
+names(resultsWilcoxon) <- names(pwc)
+resultsWilcoxon <-do.call("rbind", list(resultsWilcoxon, pwc[1,], pwc[2,], pwc[3,]))
+#je mehr Sternchen, desto signifikanter die Abweichung der einzelnen Verteilung
+# pairwise comparisons (Sign Test) -> Macht weniger statistische Annahmen, hat aber auch weniger Power
+pwc2 <- means2 %>%
+sign_test(values ~ ind, p.adjust.method = "bonferroni")
+pwc2
+names(resultsSignTest) <- names(pwc2)
+resultsSignTest <-do.call("rbind", list(resultsSignTest, pwc2[1,], pwc2[2,], pwc2[3,]))
+#je mehr Sternchen, desto signifikanter die Abweichung der einzelnen Verteilung
+}
+#Friedmann test
+#Friedmann
+AnthroPCA$id <- as.factor(rep(1:78, 3))
+res.fried <- AnthroPCA %>% friedman_test(PC1 ~ factor|id)
+newFriedmann <- c("AnthroPCA",as.character(res.fried$n), as.character(res.fried$statistic), as.character(res.fried$df), as.character(res.fried$p))
+resultsFriedmann <- rbind(resultsFriedmann, newFriedmann)
+View(resultsAnova)
+install.packages("xlsx")
+install.packages("xlsx")
+library(xlsx)
+read.xlsx("Ergebnisse Longsurvey_27012021.xlsx", 1)
+read.xlsx("Ergebnisse Longsurvey_27012021.xlsx", 0)
+read.xlsx("Ergebnisse Longsurvey_27012021.xlsx", 2)
+#Clear all
+rm(list = ls())
+#libraries
+library(janitor)
+library(psych)
+library(car)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(hrbrthemes)
+library(matlib)
+library(xlsx)
+library(tibble)
+library(coin)
+#Daten einlesen
+survey <- read.csv("survey_results.csv")
+#Transformationen
+survey2 <- t(survey)
+survey3 <- row_to_names(survey2, row_number = 1)
+survey4 <-as.data.frame(survey3)
+install.packages("data.table")
+install.packages("data.table")
+library(data.table)
+setDT(survey3)
+typeof(survey3)
+View(survey2)
+View(survey3)
+View(survey3)
+View(survey2)
+setDT(survey)
+setDT(survey2)
+setDT(survey1)
+typeof(survey2)
+mode(survey2)
+survey <- read.csv("survey_results_manualclean.csv")
+survey <- read.csv("survey_results_manualclean.csv")
+data <- read.csv("survey_results_manualclean.csv")
+summary(data)
+View(data)
+data <- read.csv("survey_results_manualclean_nocheaters.csv")
+data <- read.csv2("survey_results_manualclean_nocheaters.csv")
+View(data)
+differenz <- data$KompetenzNA-data$KompetenzBeraterNA
+differenz <- data$KompetenzNA - data$KompetenzBeraterNA
+typeof(data$KompetenzNA)
+typeof(data$KompetenzBeraterNA)
+typeof(data$KompetenzBeraterNA[3])
+data$KompetenzBeraterNA
+data <- read.csv2("survey_results_manualclean_nocheaters.csv", na="NA")
+data$KompetenzBeraterNA
+View(data)
+data[rowSums(is.na(data)) != ncol(data),]
+install.packages("janitor")
+library(janitor)
+data %>% remove_empty("rows")
+View(data)
+data %>% remove_empty("rows")
+data$KompetenzBeraterNA
+data[-(74:1030)]
+View(data)
+library(janitor)
+data <- fread("survey_results_manualclean_nocheaters.csv")
+data %>% remove_empty("rows")
+View(data)
+typeof(data)
+library(data.table)
+data <- fread("survey_results_manualclean_nocheaters.csv")
+typeof(data)
+library(lubridate)
+install.packages("lubridate")
