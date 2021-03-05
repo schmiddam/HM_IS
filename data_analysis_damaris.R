@@ -67,3 +67,25 @@ t.test(data$KompetenzNA, data$KompetenzSA, alternative = "greater", na.rm = TRUE
 t.test(data$KompetenzNA, data$KompetenzSA, alternative = "two.sided", na.rm = TRUE)
 # t = -2.76, df = 128.39, p-value = 0.006627
 # alternative hypothesis: true difference in means is not equal to 0
+
+
+
+
+
+# --------------------------- Wilcoxon NA-SA ----------------------------
+describe(data$KompetenzNA)
+#    vars  n mean  sd median trimmed  mad  min  max range  skew kurtosis   se
+# X1    1 68  3.2 0.5   3.25    3.23 0.37 1.92 4.25  2.33 -0.46        0 0.06
+describe(data$KompetenzSA)
+#   vars  n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
+#X1    1 68 3.47 0.61    3.5     3.5 0.49 1.67 4.67     3 -0.57     0.48 0.07
+
+wilcox.test(data$KompetenzNA, data$KompetenzSA)
+# W = 1662, p-value = 0.004637
+# alternative hypothesis: true location shift is not equal to 0
+
+# Ist die wahrgenommene Kompetenz des NA geringer als diejenige des SA?
+wilcox.test(data$KompetenzNA, data$KompetenzSA, paired = TRUE, exact = FALSE, correct = TRUE, alternative = "less")
+# V = 540, p-value = 0.001804
+# alternative hypothesis: true location shift is less than 0
+# --> Ja
