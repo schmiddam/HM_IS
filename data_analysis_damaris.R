@@ -80,12 +80,39 @@ describe(data$KompetenzSA)
 #   vars  n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
 #X1    1 68 3.47 0.61    3.5     3.5 0.49 1.67 4.67     3 -0.57     0.48 0.07
 
-wilcox.test(data$KompetenzNA, data$KompetenzSA)
-# W = 1662, p-value = 0.004637
-# alternative hypothesis: true location shift is not equal to 0
-
 # Ist die wahrgenommene Kompetenz des NA geringer als diejenige des SA?
 wilcox.test(data$KompetenzNA, data$KompetenzSA, paired = TRUE, exact = FALSE, correct = TRUE, alternative = "less")
 # V = 540, p-value = 0.001804
 # alternative hypothesis: true location shift is less than 0
 # --> Ja
+
+# --------------------------- Wilcoxon NA-WA ----------------------------
+describe(data$KompetenzNA)
+#    vars  n mean  sd median trimmed  mad  min  max range  skew kurtosis   se
+# X1    1 68  3.2 0.5   3.25    3.23 0.37 1.92 4.25  2.33 -0.46        0 0.06
+describe(data$KompetenzWA)
+#    vars  n mean  sd median trimmed  mad  min  max range skew kurtosis   se
+# X1    1 69 3.06 0.6   2.92    3.06 0.62 1.75 4.67  2.92 0.22    -0.43 0.07
+
+# Ist die wahrgenommene Kompetenz des NA geringer als diejenige des WA?
+wilcox.test(data$KompetenzNA, data$KompetenzWA, paired = TRUE, exact = FALSE, correct = TRUE, alternative = "less")
+# V = 1211, p-value = 0.9855
+# --> Nein
+
+# --------------------------- Wilcoxon WA-SA ----------------------------
+describe(data$KompetenzWA)
+#    vars  n mean  sd median trimmed  mad  min  max range skew kurtosis   se
+# X1    1 69 3.06 0.6   2.92    3.06 0.62 1.75 4.67  2.92 0.22    -0.43 0.07
+describe(data$KompetenzSA)
+#   vars  n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
+#X1    1 68 3.47 0.61    3.5     3.5 0.49 1.67 4.67     3 -0.57     0.48 0.07
+
+# Ist die wahrgenommene Kompetenz des NA grösser als diejenige des WA?
+wilcox.test(data$KompetenzWA, data$KompetenzSA, paired = TRUE, exact = FALSE, correct = TRUE, alternative = "greater")
+# V = 318.5, p-value = 1
+# --> Nein
+
+
+
+
+
