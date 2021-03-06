@@ -1,10 +1,17 @@
 library(data.table)
+library(psych)
 
 # ------------------Data Loading and Preparation ------------------------
 #load data
 data <- fread("survey_results_manualclean_nocheaters.csv")
 #remove empty rows
 data <- data[-(74:1030),]
+
+# replace NANs with NA
+is.nan.data.frame <- function(x)
+  do.call(cbind, lapply(x, is.nan))
+
+data[is.nan(data)] <- NA
 
 
 # -------------NA------------------------------------
@@ -19,31 +26,26 @@ hist(data$KompetenzNA)
 
 # -------------WA------------------------------------
 #Prüfung ob Kompetenzvariabeln WA normalverteilt
-diff <- data$KompetenzWA
-
 # Shapiro Wilk normality test
-shapiro.test(diff)
+shapiro.test(data$KompetenzWA)
 # W = 0.98547, p-value = 0.6054
 # da p > 0.05 sind Daten normalverteilt
-hist(diff)
+hist(data$KompetenzWA)
 # Histogram ist etwa normalverteilt - Bestätigt Shapiro-Wilk Test
 
 # -------------SA------------------------------------
 #Prüfung ob Kompetenzvariabeln SA normalverteilt
-diff <- data$KompetenzSA
-
 # Shapiro Wilk normality test
-shapiro.test(diff)
+shapiro.test(data$KompetenzSA)
 # W = 0.96794, p-value = 0.07708
 # da p > 0.05 sind Daten normalverteilt
-hist(diff)
+hist(data$KompetenzSA)
 # Histogram ist etwa normalverteilt - Bestätigt Shapiro-Wilk Test
 
 
 
 
 # --------------------------- Welch Two Sample t-Test NA-SA ----------------------------
-library(psych)
 # Vorbedingung: Ist Varianz etwa gleich?
 describeBy(data$KompetenzSA, na.rm = TRUE)
 describeBy(data$KompetenzNA, na.rm = TRUE)
@@ -115,4 +117,13 @@ wilcox.test(data$KompetenzWA, data$KompetenzSA, paired = TRUE, exact = FALSE, co
 
 
 
+# --------------------------- Multiple Regression KompetenzSA~KompetenzBeraterSA----------------------------
+plot(data$KompetenzSA, data$KompetenzBeraterSA)
 
+#Beraterkompetenz abhängig von HM Kompetenz?
+testmodel <- lm(KompetenzSA~KompetenzBeraterSA, data = data)
+
+# add line to plot which shows the estimated values
+abline(testmodel, col="red")
+
+summary(testmodel)
