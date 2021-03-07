@@ -127,3 +127,15 @@ testmodel <- lm(KompetenzSA~KompetenzBeraterSA, data = data)
 abline(testmodel, col="red")
 
 summary(testmodel)
+
+
+# --------------------------- Multiple Regression KompetenzWA~KompetenzBeraterWA----------------------------
+plot(data$KompetenzWA, data$KompetenzBeraterWA)
+
+#Beraterkompetenz abhängig von HM Kompetenz?
+testmodel <- lm(KompetenzWA~KompetenzBeraterWA, data = data)
+
+# add line to plot which shows the estimated values
+abline(testmodel, col="blue")
+
+summary(testmodel)
