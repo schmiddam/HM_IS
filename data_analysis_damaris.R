@@ -198,7 +198,7 @@ cor.test(data$KompetenzBeraterSA, data$KompetenzSA)
 
 
 
-# ---------------------------   Repeated One-way ANOVA ----------------------------
+# ---------------------------   Repeated One-way ANOVA HM ----------------------------
 # data preparation
 # extract the 3 competence measure-columns NA, WA, SA
 data_extract <- data %>% select(id, KompetenzNA, KompetenzWA, KompetenzSA)
@@ -214,9 +214,9 @@ competence %>%
 # A tibble: 3 x 5
 #anthro_version variable     n  mean    sd
 # <fct>            <chr>    <dbl> <dbl> <dbl>
-# 1 KompetenzNA    measure     78  3.20 0.475
-# 2 KompetenzSA    measure     78  3.44 0.61 
-# 3 KompetenzWA    measure     78  3.04 0.574
+# 1 KompetenzNA    measure     77  3.20 0.477
+# 2 KompetenzSA    measure     77  3.45 0.611
+# 3 KompetenzWA    measure     77  3.04 0.578
 
 # Visualize
 bxp <- ggboxplot(competence, x = "anthro_version", y = "measure", add = "point")
@@ -243,5 +243,116 @@ get_anova_table(res.aov)
 ## ANOVA Table (type III tests)
 ## 
 ##   Effect         DFn DFd F      p        p<.05   ges
-## 1 anthro_version   2 154 16.285 3.84e-07 *       0.083
+## 1 anthro_version   2 152 16.327 3.77e-07     * 0.084
 ## --> The competence score is statistically significantly different for the different anthro_versions NA, WA, and SA
+
+# Posthoc test
+# pairwise comparisons
+pwc <- competence %>%
+  pairwise_t_test(
+    measure ~ anthro_version, paired = TRUE,
+    p.adjust.method = "bonferroni"
+  )
+pwc
+# A tibble: 3 x 10
+#.y.         group1      group2         n1    n2 statistic    df           p     p.adj p.adj.signif
+#*   <chr>   <chr>       <chr>       <int> <int>     <dbl> <dbl>       <dbl>     <dbl> <chr>       
+#  1 measure KompetenzNA KompetenzSA    77    77     -3.23    76 0.002       0.005      **            
+#  2 measure KompetenzNA KompetenzWA    77    77      2.45    76 0.016       0.049      *           
+#  3 measure KompetenzSA KompetenzWA    77    77      5.58    76 0.000000357 0.00000107 ****       
+# --> First and last of the pairwise differences are statistically significant, since all p-values<(0.05/3=0.017) 
+# (Slide 7: https://www.ebpi.uzh.ch/dam/jcr:ffffffff-c1f2-5119-0000-000078458c66/slides-anova.pdf)
+
+# Visualization: box plots with p-values
+pwc <- pwc %>% add_xy_position(x = "anthro_version")
+bxp + 
+  stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(res.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
+
+
+# ---------------------------   Repeated One-way ANOVA Berater----------------------------
+# data preparation
+# extract the 3 competence measure-columns NA, WA, SA
+data_extract_Berater <- data %>% select(id, KompetenzBeraterKL, KompetenzBeraterNA, KompetenzBeraterWA, KompetenzBeraterSA)
+
+# rearrange values
+competence_Berater <- data_extract_Berater %>%  
+  gather(key = "anthro_version", value = "measure", KompetenzBeraterKL, KompetenzBeraterNA, KompetenzBeraterWA, KompetenzBeraterSA) %>% 
+  convert_as_factor(id, anthro_version)
+
+# replace all two NA in KL with mean of KL values 3.36 to enable Posthoc test
+competence_Berater[is.na(competence_Berater)] <- 3.36
+
+
+# compute some summary statistics
+competence_Berater %>%
+  group_by(anthro_version) %>%
+  get_summary_stats(measure, type = "mean_sd")
+# A tibble: 3 x 5
+#   anthro_version     variable     n  mean    sd
+#   <fct>              <chr>    <dbl> <dbl> <dbl>
+# 1 KompetenzBeraterKL measure     75  3.36 0.669
+# 2 KompetenzBeraterNA measure     77  3.45 0.522
+# 3 KompetenzBeraterSA measure     77  3.42 0.557
+# 4 KompetenzBeraterWA measure     77  3.44 0.564
+
+# Visualize
+bxp <- ggboxplot(competence_Berater, x = "anthro_version", y = "measure", add = "point")
+bxp
+
+#Check for extreme outliers
+competence_Berater %>%
+  group_by(anthro_version) %>%
+  identify_outliers(measure)
+# --> 3 outliers; No extreme outliers
+
+# Check normality assumption
+competence_Berater %>%
+  group_by(anthro_version) %>%
+  shapiro_test(measure)
+# The competence measures are all normally distributed at each anthro_version, as assessed by Shapiro-Wilk’s test (p > 0.05).
+
+# Additional normality assumptions check since Shapiro Wilks test can get sensitive to minor deviation from normality with sample size > 50
+ggqqplot(competence_Berater, "measure", facet.by = "anthro_version")
+
+# Computation of repeated ANOVA
+res.aov <- anova_test(data = competence_Berater, dv = measure, wid = id, within = anthro_version)
+get_anova_table(res.aov)
+## ANOVA Table (type III tests)
+## 
+##        Effect  DFn    DFd     F     p p<.05   ges
+## anthro_version 2.48 183.55 1.091   0.347       0.004
+## --> The competence score of Berater is NOT statistically significantly different for the different anthro_versions KL, NA, WA, and SA
+
+
+# Posthoc test
+# pairwise comparisons
+pwc <- competence_Berater %>%
+  pairwise_t_test(
+    measure ~ anthro_version, paired = TRUE,
+    p.adjust.method = "bonferroni"
+  )
+pwc
+# A tibble: 3 x 10
+# .y.     group1             group2                n1    n2 statistic    df     p p.adj p.adj.signif
+# * <chr>   <chr>              <chr>              <int> <int>     <dbl> <dbl> <dbl> <dbl> <chr>       
+# 1 measure KompetenzBeraterKL KompetenzBeraterNA    77    77    -1.45     76 0.151 0.906 ns          
+# 2 measure KompetenzBeraterKL KompetenzBeraterSA    77    77    -0.801    76 0.426 1     ns          
+# 3 measure KompetenzBeraterKL KompetenzBeraterWA    77    77    -1.29     76 0.202 1     ns          
+# 4 measure KompetenzBeraterNA KompetenzBeraterSA    77    77     0.713    76 0.478 1     ns          
+# 5 measure KompetenzBeraterNA KompetenzBeraterWA    77    77     0.231    76 0.818 1     ns          
+# 6 measure KompetenzBeraterSA KompetenzBeraterWA    77    77    -0.605    76 0.547 1     ns       
+# --> None of the pairwise differences are statistically significant, since all p-values<(0.05/3=0.017) 
+# (Slide 7: https://www.ebpi.uzh.ch/dam/jcr:ffffffff-c1f2-5119-0000-000078458c66/slides-anova.pdf)
+
+# Visualization: box plots with p-values
+pwc <- pwc %>% add_xy_position(x = "anthro_version")
+bxp + 
+  stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(res.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
