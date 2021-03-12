@@ -21,8 +21,6 @@ data$Dem02 <- str_replace_all(data$Dem02, "weiblich", "1")
 data$Dem02 <- str_replace_all(data$Dem02, "mÃ¤nnlich", "0")
 data$Dem02 <- sapply(data[, Dem02], as.integer)
 
-#blubb
-
 # change Ja/Nein zu 1/0
 data$ErfahrungBank <- str_replace_all(data$ErfahrungBank, "Ja", "1")
 data$ErfahrungBank <- str_replace_all(data$ErfahrungBank, "Nein", "0")
