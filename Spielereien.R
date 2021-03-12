@@ -8,6 +8,66 @@ abb <- substr(abb, nchar(abb)-1, nchar(abb))
 # add column which states anthro version
 add_column(data_extract_MANOVA, version = abb)
 
+# replace NANs with NA
+is.nan.data.frame <- function(x)
+  do.call(cbind, lapply(x, is.nan))
+
+data[is.nan(data)] <- NA
+
+
+# -------------NA------------------------------------
+#Prüfung ob Kompetenzvariabeln NA normalverteilt
+
+# Shapiro Wilk normality test
+shapiro.test(data$KompetenzNA)
+# W = 0.97636, p-value = 0.1612
+# da p > 0.05 sind Daten normalverteilt
+hist(data$KompetenzNA)
+# Histogram ist etwa normalverteilt - Bestätigt Shapiro-Wilk Test
+
+# -------------WA------------------------------------
+#Prüfung ob Kompetenzvariabeln WA normalverteilt
+# Shapiro Wilk normality test
+shapiro.test(data$KompetenzWA)
+# W = 0.98437, p-value = 0.4662
+# da p > 0.05 sind Daten normalverteilt
+hist(data$KompetenzWA)
+# Histogram ist etwa normalverteilt - Bestätigt Shapiro-Wilk Test
+
+# -------------SA------------------------------------
+#Prüfung ob Kompetenzvariabeln SA normalverteilt
+# Shapiro Wilk normality test
+shapiro.test(data$KompetenzSA)
+# W = 0.97451, p-value = 0.1241
+# da p > 0.05 sind Daten normalverteilt
+hist(data$KompetenzSA)
+# Histogram ist etwa normalverteilt - Bestätigt Shapiro-Wilk Test
+
+# --------------------------- Welch Two Sample t-Test NA-SA ----------------------------
+# Vorbedingung: Ist Varianz etwa gleich?
+describeBy(data$KompetenzSA, na.rm = TRUE)
+describeBy(data$KompetenzNA, na.rm = TRUE)
+# KompetenzSA sd = 0.61; KompetenzNA sd = 0.48
+
+# Nullhypothese: No difference between averages of the two groups
+
+# ---Alternativhypothese: SA ist weniger kompetent als NA
+t.test(data$KompetenzNA, data$KompetenzSA, alternative = "less", na.rm = TRUE)
+#t = -2.7794, df = 143.55, p-value = 0.003088
+#alternative hypothesis: true difference in means is less than 0
+
+
+# ---Alternativhypothese: SA ist kompetenter als NA
+t.test(data$KompetenzNA, data$KompetenzSA, alternative = "greater", na.rm = TRUE)
+#t = -2.7794, df = 143.55, p-value = 0.9969
+#alternative hypothesis: true difference in means is greater than 0
+# ---> there is not enough evidence of a difference between the (true) averages of the two groups
+
+# ---Two-sided
+t.test(data$KompetenzNA, data$KompetenzSA, alternative = "two.sided", na.rm = TRUE)
+# t = -2.7794, df = 143.55, p-value = 0.006175
+# alternative hypothesis: true difference in means is not equal to 0
+
 
 # --------------------------- One-way MANOVA ----------------------------
 

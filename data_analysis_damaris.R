@@ -29,69 +29,55 @@ data$ErfahrungBank <- str_replace_all(data$ErfahrungBank, "Ja", "1")
 data$ErfahrungBank <- str_replace_all(data$ErfahrungBank, "Nein", "0")
 data$ErfahrungBank <- sapply(data[, ErfahrungBank], as.integer)
 
-# replace NANs with NA
-is.nan.data.frame <- function(x)
-  do.call(cbind, lapply(x, is.nan))
 
-data[is.nan(data)] <- NA
+# --------------------------- Welch Two Sample t-Test Anthropomophizität ----------------------------
 
+# Combine multiple Anthro-values (Anthro1NA,Anthro3NA, Anthro5NA) by mean
+anthro_table <- data %>% 
+  select(id, Anthro1NA, Anthro3NA, Anthro5NA, 
+         Anthro1WA, Anthro3WA, Anthro5WA, 
+         Anthro1SA, Anthro3SA, Anthro5SA) %>%
+  mutate(AnthroNA = (Anthro1NA+Anthro3NA+Anthro5NA)/3) %>%
+  mutate(AnthroWA = (Anthro1WA+Anthro3WA+Anthro5WA)/3) %>%
+  mutate(AnthroSA = (Anthro1SA+Anthro3SA+Anthro5SA)/3) 
+anthro_table <- anthro_table %>%
+  select(id, AnthroNA, AnthroWA, AnthroSA)
 
-# -------------NA------------------------------------
-#Prüfung ob Kompetenzvariabeln NA normalverteilt
+# rearrange values
+anthro_table_rearranged <- anthro_table %>%  
+  gather(key = "version", value = "measure", AnthroNA, AnthroWA, AnthroSA) %>% 
+  convert_as_factor(id, version)
 
-# Shapiro Wilk normality test
-shapiro.test(data$KompetenzNA)
-# W = 0.97636, p-value = 0.1612
-# da p > 0.05 sind Daten normalverteilt
-hist(data$KompetenzNA)
-# Histogram ist etwa normalverteilt - Bestätigt Shapiro-Wilk Test
+anthro_table_rearranged$version <- str_replace_all(anthro_table_rearranged$version, "AnthroNA", "1")
+anthro_table_rearranged$version <- str_replace_all(anthro_table_rearranged$version, "AnthroWA", "2")
+anthro_table_rearranged$version <- str_replace_all(anthro_table_rearranged$version, "AnthroSA", "3")
 
-# -------------WA------------------------------------
-#Prüfung ob Kompetenzvariabeln WA normalverteilt
-# Shapiro Wilk normality test
-shapiro.test(data$KompetenzWA)
-# W = 0.98437, p-value = 0.4662
-# da p > 0.05 sind Daten normalverteilt
-hist(data$KompetenzWA)
-# Histogram ist etwa normalverteilt - Bestätigt Shapiro-Wilk Test
+# Shapiro-Wilk normality test: keine Normalverteilung -> kein t-Test möglich
 
-# -------------SA------------------------------------
-#Prüfung ob Kompetenzvariabeln SA normalverteilt
-# Shapiro Wilk normality test
-shapiro.test(data$KompetenzSA)
-# W = 0.97451, p-value = 0.1241
-# da p > 0.05 sind Daten normalverteilt
-hist(data$KompetenzSA)
-# Histogram ist etwa normalverteilt - Bestätigt Shapiro-Wilk Test
+describeBy(anthro_table_rearranged$measure, anthro_table_rearranged$version)
+group: 1
+# vars  n mean   sd median trimmed  mad  min  max range skew kurtosis   se
+# X1    1 77 2.69 0.56   2.62    2.65 0.51 1.58 4.47  2.89 0.69     0.44 0.06
+# -------------------------------------------------------------------------- 
+#   group: 2
+# vars  n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
+# X1    1 77 2.89 0.62   2.85     2.9 0.65 1.47 4.22  2.75 -0.05    -0.58 0.07
+# -------------------------------------------------------------------------- 
+#   group: 3
+# vars  n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
+# X1    1 77 3.48 0.64   3.58    3.53 0.55 1.67 4.59  2.92 -0.73     0.32 0.07
 
+# Kruskal-Wallis-Test: Signifikante Unterschiede zwischen Anthro-Varianten
+kruskal.test(anthro_table_rearranged$measure~anthro_table_rearranged$version)
+boxplot(measure~version, data = anthro_table_rearranged)
 
-
-
-# --------------------------- Welch Two Sample t-Test NA-SA ----------------------------
-# Vorbedingung: Ist Varianz etwa gleich?
-describeBy(data$KompetenzSA, na.rm = TRUE)
-describeBy(data$KompetenzNA, na.rm = TRUE)
-# KompetenzSA sd = 0.61; KompetenzNA sd = 0.48
-
-# Nullhypothese: No difference between averages of the two groups
-
-# ---Alternativhypothese: SA ist weniger kompetent als NA
-t.test(data$KompetenzNA, data$KompetenzSA, alternative = "less", na.rm = TRUE)
-#t = -2.7794, df = 143.55, p-value = 0.003088
-#alternative hypothesis: true difference in means is less than 0
-
-
-# ---Alternativhypothese: SA ist kompetenter als NA
-t.test(data$KompetenzNA, data$KompetenzSA, alternative = "greater", na.rm = TRUE)
-#t = -2.7794, df = 143.55, p-value = 0.9969
-#alternative hypothesis: true difference in means is greater than 0
-# ---> there is not enough evidence of a difference between the (true) averages of the two groups
-
-# ---Two-sided
-t.test(data$KompetenzNA, data$KompetenzSA, alternative = "two.sided", na.rm = TRUE)
-# t = -2.7794, df = 143.55, p-value = 0.006175
-# alternative hypothesis: true difference in means is not equal to 0
-
+# Wilcoxon Test bestätigt Signifikanz auch zwischen einzelnen Anthrovarianten
+pow <- anthro_table_rearranged %>% slice(1:154)
+pow1 <- anthro_table_rearranged %>% slice(78:231)
+pow2 <- anthro_table_rearranged %>% slice(1:77)
+pow3 <- anthro_table_rearranged %>% slice(155:231)
+pow4 <- rbind(pow2, pow3)
+wilcox.test(measure~version, data = pow4, exact=FALSE)
 
 
 
@@ -329,7 +315,7 @@ dSA <- data %>%
 competenceAll <- rbind(dNA, dWA, dSA)
 
 
-# split Berater&Agent in einzige Spalte Kompetenz, dafür neue value human(0,1)
+# split "Berater" & "Agent" in einzige Spalte "Kompetenz", dafür neue value human(0,1)
 new_table_agent <- competenceAll %>%
   # drop Berater
   select(id, Agent, version) %>%
