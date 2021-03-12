@@ -96,95 +96,6 @@ t.test(data$KompetenzNA, data$KompetenzSA, alternative = "two.sided", na.rm = TR
 
 
 
-# --------------------------- Wilcoxon NA-SA ----------------------------
-describe(data$KompetenzNA)
-#    vars  n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
-# X1    1 77  3.2 0.48   3.25    3.23 0.37 1.92 4.25  2.33 -0.45     0.16 0.05
-describe(data$KompetenzSA)
-#   vars  n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
-#X1    1 77 3.45 0.61   3.42    3.47 0.62 1.67 4.67     3 -0.41     0.24 0.07
-
-# Ist die wahrgenommene Kompetenz des NA geringer als diejenige des SA?
-wilcox.test(data$KompetenzNA, data$KompetenzSA, paired = TRUE, exact = FALSE, correct = TRUE, alternative = "less")
-# V = 763, p-value = 0.001588
-# alternative hypothesis: true location shift is less than 0
-# --> Ja
-
-# --------------------------- Wilcoxon NA-WA ----------------------------
-describe(data$KompetenzNA)
-#    vars  n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
-# X1    1 77  3.2 0.48   3.25    3.23 0.37 1.92 4.25  2.33 -0.45     0.16 0.05
-describe(data$KompetenzWA)
-#    vars  n mean  sd median trimmed  mad  min  max range skew kurtosis   se
-# X1    1 77 3.04 0.58   2.92    3.03 0.49 1.75 4.67  2.92 0.26    -0.23 0.07
-
-# Ist die wahrgenommene Kompetenz des NA geringer als diejenige des WA?
-wilcox.test(data$KompetenzNA, data$KompetenzWA, paired = TRUE, exact = FALSE, correct = TRUE, alternative = "less")
-# V = 1714.5, p-value = 0.9939
-# --> Nein
-
-# --------------------------- Wilcoxon WA-SA ----------------------------
-describe(data$KompetenzWA)
-#    vars  n mean  sd median trimmed  mad  min  max range skew kurtosis   se
-# X1    1 77 3.04 0.58   2.92    3.03 0.49 1.75 4.67  2.92 0.26    -0.23 0.07
-describe(data$KompetenzSA)
-#   vars  n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
-#X1    1 77 3.45 0.61   3.42    3.47 0.62 1.67 4.67     3 -0.41     0.24 0.07
-
-# Ist die wahrgenommene Kompetenz des NA grösser als diejenige des WA?
-wilcox.test(data$KompetenzWA, data$KompetenzSA, paired = TRUE, exact = FALSE, correct = TRUE, alternative = "greater")
-# V  = 496, p-value = 1
-# --> Nein
-
-
-
-
-# --------------------------- Multiple Regression KompetenzSA~KompetenzBeraterSA----------------------------
-plot(data$KompetenzSA, data$KompetenzBeraterSA)
-
-#Beraterkompetenz abhängig von HM Kompetenz?
-testmodel <- lm(KompetenzSA~KompetenzBeraterSA, data = data)
-
-# add line to plot which shows the estimated values
-abline(testmodel, col="red")
-
-summary(testmodel)
-
-
-# --------------------------- Multiple Regression KompetenzWA~KompetenzBeraterWA----------------------------
-plot(data$KompetenzWA, data$KompetenzBeraterWA, col = data$KompetenzWA)
-
-#Beraterkompetenz abhängig von HM Kompetenz?
-testmodel <- lm(KompetenzWA~KompetenzBeraterWA, data = data)
-# da p-value: 6.633e-05, leistet das Modell einen Erklärungsbeitrag zur Fragestellung
-# --> Multiple R-squared:  0.1923 -> ich kann ledglich 17.42% der Varianz von KompetenzWA erklären (sehr wenig)
-# --> Ändert sich die KompetenzBeraterWA um 1 Einheit, steigt die KompetenzWA um 0.4371
-
-# add line to plot which shows the estimated values
-abline(testmodel, col="blue")
-
-summary(testmodel)
-
-
-
-
-# --------------------------- Multiple Regression KompetenzAgent~KompetenzBerater----------------------------
-plot(competenceAll$Agent, competenceAll$Berater, col = competenceAll$Agent)
-
-#Beraterkompetenz abhängig von HM Kompetenz?
-testmodel <- lm(Agent~Berater, data = competenceAll)
-# da p-value: 6.633e-05, leistet das Modell einen Erklärungsbeitrag zur Fragestellung
-# --> Multiple R-squared:  0.1656 -> ich kann ledglich 16.56% der Varianz von Agent erklären (sehr wenig)
-# --> Ändert sich die Kompetenz des Berater um 1 Einheit, steigt die Kompetenz des Agenten um 0.43
-
-# add line to plot which shows the estimated values
-abline(testmodel, col="blue")
-
-summary(testmodel)
-
-
-
-
 # ---------------------------  Pearson Korrelation KompetenzXA~KompetenzBeraterXA----------------------------
 # Voraussetzungen erfüllt gemäss https://www.methodenberatung.uzh.ch/de/datenanalyse_spss/zusammenhaenge/korrelation.html#3.6._Eine_typische_Aussage
 
@@ -230,13 +141,6 @@ cor.test(data$KompetenzBeraterSA, data$KompetenzSA)
 # sample estimates:
 #   cor 
 # 0.3920805 
-
-
-
-
-# ---------------------------  Pearson Korrelation KompetenzXA~KompetenzXA - Honesty----------------------------
-# Voraussetzungen erfüllt gemäss https://www.methodenberatung.uzh.ch/de/datenanalyse_spss/zusammenhaenge/korrelation.html#3.6._Eine_typische_Aussage
-
 
 
 
@@ -400,8 +304,9 @@ bxp +
     caption = get_pwc_label(pwc)
   )
 
-# --------------------------- One-way MANOVA NA----------------------------
-
+# --------------------------- Two-way ANOVA ----------------------------
+# independent variables: human (0,1) & version (NA, WA, SA)
+# dependent variable: Kompetenz
 
 # data preparation; select columns
 data_extract_MANOVA <- data %>% 
@@ -421,114 +326,37 @@ dSA <- data %>%
   rename(Agent = KompetenzSA, Berater = KompetenzBeraterSA) %>%
   add_column(version="SA")
 
-competenceAll <- rbind(dNA, dWA)
-competenceAll <- rbind(competenceAll, dSA)
-# extract column name
-# abb <- sample(colnames(data_extract_MANOVA), 3)
-
-# extract the last two characters of string, e.g. 'NA' or 'WA'
-# abb <- substr(abb, nchar(abb)-1, nchar(abb))
-
-# add column which states anthro version
-# add_column(data_extract_MANOVA, version = abb)
+competenceAll <- rbind(dNA, dWA, dSA)
 
 
-# Visualization
-ggboxplot(
-  competenceAll, x = "version", y = c("Agent", "Berater") , 
-  merge = TRUE, palette = "jco"
-)
+# split Berater&Agent in einzige Spalte Kompetenz, dafür neue value human(0,1)
+new_table_agent <- competenceAll %>%
+  # drop Berater
+  select(id, Agent, version) %>%
+  # new column with binary independent humanism value (0 or 1)
+  add_column(human=0) %>%
+  # Agent is renamed to generic competence
+  rename(Kompetenz = Agent) 
+
+new_table_berater <- competenceAll %>%
+  # drop Agent
+  select(id, Berater, version) %>%
+  # new column with binary independent humanism value (0 or 1)
+  add_column(human=1) %>%
+  # Agent is renamed to generic competence
+  rename(Kompetenz = Berater) 
+
+dt <- rbind(new_table_agent, new_table_berater)
+
+# change "NA"/"WA"/"SA" zu 1/2/3
+dt$version <- str_replace_all(dt$version, "NA", "1")
+dt$version <- str_replace_all(dt$version, "WA", "2")
+dt$version <- str_replace_all(dt$version, "SA", "3")
+dt$version <- sapply(dt[, version], as.integer)
+
+# remove unnecessary tables from environment
+rm(dNA, dSA, dWA, new_table, new_table_agent, new_table_berater)
+
+# now we are ready for ANOVA \o.O/
 
 
-# Compute summary statistics
-competenceAll %>%
-  group_by(version) %>%
-  get_summary_stats(Berater, Agent, type = "mean_sd")
-# version variable     n  mean    sd
-# 1 NA      Agent       77  3.20 0.477
-# 2 NA      Berater     77  3.45 0.522
-# 3 SA      Agent       77  3.45 0.611
-# 4 SA      Berater     77  3.42 0.557
-# 5 WA      Agent       77  3.04 0.578
-# 6 WA      Berater     77  3.44 0.564
-
-# Check outliers
-competenceAll %>%
-  group_by(version) %>%
-  identify_outliers(Berater)
-# --> 2 outliers in WA; none is extreme
-
-competenceAll %>%
-  group_by(version) %>%
-  identify_outliers(Agent)
-# --> 7 outliers in NA, SA, WA; none is extreme
-
-
-# Compute distance by groups and filter outliers
-# Use -id to omit the id column in the computation
-competenceAll %>%
-  group_by(version) %>%
-  mahalanobis_distance(-id) %>%
-  filter(is.outlier == TRUE) %>%
-  as.data.frame()
-
-
-# Check univariate normality assumption
-competenceAll %>%
-  group_by(version) %>%
-  shapiro_test(Agent, Berater) %>%
-  arrange(variable)
-# version variable statistic     p
-# <chr>   <chr>        <dbl> <dbl>
-# 1 NA      Agent        0.976 0.161
-# 2 SA      Agent        0.975 0.124
-# 3 WA      Agent        0.984 0.466
-# 4 NA      Berater      0.985 0.498
-# 5 SA      Berater      0.991 0.870
-# 6 WA      Berater      0.974 0.123
-# --> all are normally distributed
-
-
-# Plot normal distribution
-ggqqplot(competenceAll, "Agent", facet.by = "version",
-         ylab = "Competence Measure", ggtheme = theme_bw())
-ggqqplot(competenceAll, "Berater", facet.by = "version",
-         ylab = "Competence Measure", ggtheme = theme_bw())
-
-# Multivariate normality
-competenceAll %>%
-  select(Agent, Berater) %>%
-  mshapiro_test()
-#     statistic p.value
-#  1     0.977 0.000791
-# --> We cannot assume multivariate normality.
-
-# Identify multicolinearity
-competenceAll %>% cor_test(Agent, Berater)
-# no multicolinearity, as assessed by Pearson correlation (p < 0.001)
-
-# Check the homogeneity of covariances assumption
-box_m(competence_all["measure"], competence_all$anthro_version)
-# p.value 0.360   --> :(
-#Note that, if you have balanced design (i.e., groups with similar sizes), you 
-#don’t need to worry too much about violation of the homogeneity of variances-covariance 
-#matrices and you can continue your analysis.
-#However, having an unbalanced design is problematic. Possible solutions include: 
-#1) transforming the dependent variables; 
-#2) running the test anyway, but using Pillai’s multivariate statistic instead of Wilks’ statistic.
-
-
-#Check the homogneity of variance assumption
-competence_all %>% 
-  levene_test(measure ~ anthro_version)
-# p.value 0.464 --> :(
-# Note that, if you do not have homogeneity of variances, you can try to transform 
-# the outcome (dependent) variable to correct for the unequal variances.
-# Alternatively, you can continue, but accept a lower level of statistical 
-#significance (alpha level) for your MANOVA result. Additionally, any follow-up 
-# univariate ANOVAs will need to be corrected for this violation 
-#(i.e., you will need to use different post-hoc tests).
-
-# Computation MANOVA
-model <- lm(measure ~ anthro_version, competence_all)
-Manova(cbind(KompetenzNA, KompetenzBeraterNA)~id)
