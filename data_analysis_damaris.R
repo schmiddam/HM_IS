@@ -1,3 +1,5 @@
+#Github token instead password:  4f957a59042f0e723c5bd81e694a57b12b3cd291
+
 library(data.table)
 library(psych)
 library(purrr)
@@ -9,6 +11,7 @@ library(dplyr)
 library(carData) # MANOVA
 library(car) # MANOVA
 library(broom) # MANOVA
+library(lavaan) # SEM
 
 # ------------------Data Loading and Preparation ------------------------
 #load data
@@ -16,12 +19,12 @@ data <- fread("survey_results_manualclean.csv")
 #remove empty rows
 data <- data[-(64),]
 
-# change weiblich/männlich zu 1/0
+# change "weiblich"/"männlich" zu 1/0
 data$Dem02 <- str_replace_all(data$Dem02, "weiblich", "1")
 data$Dem02 <- str_replace_all(data$Dem02, "mÃ¤nnlich", "0")
 data$Dem02 <- sapply(data[, Dem02], as.integer)
 
-# change Ja/Nein zu 1/0
+# change "Ja"/"Nein" zu 1/0
 data$ErfahrungBank <- str_replace_all(data$ErfahrungBank, "Ja", "1")
 data$ErfahrungBank <- str_replace_all(data$ErfahrungBank, "Nein", "0")
 data$ErfahrungBank <- sapply(data[, ErfahrungBank], as.integer)
