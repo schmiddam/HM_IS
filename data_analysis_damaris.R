@@ -81,24 +81,10 @@ pow4 <- rbind(pow2, pow3)
 wilcox.test(measure~version, data = pow4, exact=FALSE)
 
 
-# ---------------------------  Pearson Korrelation KompetenzXA~KompetenzBeraterXA----------------------------
+# ---------------------------  Pearson Korrelation KompetenzBeraterXA~KompetenzXA----------------------------
 # Voraussetzungen erfüllt gemäss https://www.methodenberatung.uzh.ch/de/datenanalyse_spss/zusammenhaenge/korrelation.html#3.6._Eine_typische_Aussage
+# Welchen Einfluss hat wahrgenommene Kompetenz des Beraters auf die wahrgenommene Kompetenz des HM
 
-#detect outliers using a boxplot
-ggplot(competenceAll) +
-  aes(x = "", y = Agent) +
-  geom_boxplot(fill = "#0c4c8a") +
-  theme_minimal()
-
-# Pearson Korrelation Test
-cor.test(competenceAll$Berater, competenceAll$Agent)
-# t = 6.7415, df = 229, p-value = 1.26e-10
-# alternative hypothesis: true correlation is not equal to 0
-# 95 percent confidence interval:
-#   0.2932643 0.5092655
-# sample estimates:
-#   cor 
-# 0.4069378 
 
 cor.test(data$KompetenzBeraterNA, data$KompetenzNA)
 # t = 4.2257, df = 75, p-value = 6.633e-05
@@ -108,15 +94,19 @@ cor.test(data$KompetenzBeraterNA, data$KompetenzNA)
 # sample estimates:
 #   cor 
 # 0.4385202 
+# --> mittlerer bis starker positiver Effekt: Immer Kompetenz des Beraters steigt, steigt Kompetenz von HM
 
-cor.test(data$KompetenzBeraterNA, data$KompetenzNA)
-# t = 4.7501, df = 75, p-value = 9.558e-06
+
+cor.test(data$KompetenzBeraterWA, data$KompetenzWA)
+# t = 4.2257, df = 75, p-value = 6.633e-05
 # alternative hypothesis: true correlation is not equal to 0
 # 95 percent confidence interval:
-#   0.2879387 0.6363403
+#   0.2379086 0.6032485
 # sample estimates:
 #   cor 
-# 0.4809031 
+# 0.4385202 
+# --> mittlerer bis starker positiver Effekt: Immer Kompetenz des Beraters steigt, steigt Kompetenz von HM
+
 
 cor.test(data$KompetenzBeraterSA, data$KompetenzSA)
 # t = 3.6911, df = 75, p-value = 0.000421
@@ -126,6 +116,47 @@ cor.test(data$KompetenzBeraterSA, data$KompetenzSA)
 # sample estimates:
 #   cor 
 # 0.3920805 
+# --> mittlerer bis starker positiver Effekt: Immer Kompetenz des Beraters steigt, steigt Kompetenz von HM
+
+
+
+# ---------------------------  Pearson Korrelation KompetenzXA~KompetenzBeraterXA----------------------------
+# Voraussetzungen erfüllt gemäss https://www.methodenberatung.uzh.ch/de/datenanalyse_spss/zusammenhaenge/korrelation.html#3.6._Eine_typische_Aussage
+# Welchen Einfluss hat wahrgenommene Kompetenz des HM auf die wahrgenommene Kompetenz des Beraters
+
+cor.test(data$KompetenzNA, data$KompetenzBeraterNA)
+# t = 4.7501, df = 75, p-value = 9.558e-06
+# alternative hypothesis: true correlation is not equal to 0
+# 95 percent confidence interval:
+#  0.2879387 0.6363403
+# sample estimates:
+#   cor 
+# 0.4809031 
+# --> mittlerer bis starker positiver Effekt: Immer Kompetenz des HM steigt, steigt Kompetenz von Beraters
+
+
+cor.test(data$KompetenzWA, data$KompetenzBeraterWA)
+# t = 4.2257, df = 75, p-value = 6.633e-05
+# alternative hypothesis: true correlation is not equal to 0
+# 95 percent confidence interval:
+#   0.2379086 0.6032485
+# sample estimates:
+#   cor 
+# 0.4385202 
+# --> mittlerer bis starker positiver Effekt: Immer Kompetenz des HM steigt, steigt Kompetenz von Beraters
+
+
+cor.test(data$KompetenzSA, data$KompetenzBeraterSA)
+# t = 3.6911, df = 75, p-value = 0.000421
+# alternative hypothesis: true correlation is not equal to 0
+# 95 percent confidence interval:
+#   0.1842852 0.5663259
+# sample estimates:
+#   cor 
+# 0.3920805 
+# --> mittlerer bis starker positiver Effekt: Immer Kompetenz des Beraters steigt, steigt Kompetenz von HM
+
+
 
 
 
