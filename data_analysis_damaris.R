@@ -12,6 +12,7 @@ library(carData) # MANOVA
 library(car) # MANOVA
 library(broom) # MANOVA
 library(lavaan) # SEM
+library(emmeans) # two-way ANOVA
 
 # ------------------Data Loading and Preparation ------------------------
 #load data
@@ -78,8 +79,6 @@ pow2 <- anthro_table_rearranged %>% slice(1:77)
 pow3 <- anthro_table_rearranged %>% slice(155:231)
 pow4 <- rbind(pow2, pow3)
 wilcox.test(measure~version, data = pow4, exact=FALSE)
-
-
 
 
 # ---------------------------  Pearson Korrelation KompetenzXA~KompetenzBeraterXA----------------------------
@@ -320,7 +319,7 @@ new_table_agent <- competenceAll %>%
   # drop Berater
   select(id, Agent, version) %>%
   # new column with binary independent humanism value (0 or 1)
-  add_column(human=0) %>%
+  add_column(human="no") %>%
   # Agent is renamed to generic competence
   rename(Kompetenz = Agent) 
 
@@ -328,7 +327,7 @@ new_table_berater <- competenceAll %>%
   # drop Agent
   select(id, Berater, version) %>%
   # new column with binary independent humanism value (0 or 1)
-  add_column(human=1) %>%
+  add_column(human="yes") %>%
   # Agent is renamed to generic competence
   rename(Kompetenz = Berater) 
 
@@ -345,4 +344,101 @@ rm(dNA, dSA, dWA, new_table, new_table_agent, new_table_berater)
 
 # now we are ready for ANOVA \o.O/
 
+bxp <- ggboxplot(
+  dt, x = "human", y = "Kompetenz",
+  color = "version", palette =c("#00AFBB", "#E7B800", "#FC4E07")
+)
+bxp
 
+dt %>%
+  group_by(human, version) %>%
+  identify_outliers(Kompetenz)
+# some Outliers, but no extreme
+
+# Build the linear model
+model  <- lm(Kompetenz ~ human*version,
+             data = dt)
+# Create a QQ plot of residuals
+ggqqplot(residuals(model))
+
+# Compute Shapiro-Wilk test of normality
+shapiro_test(residuals(model))
+# we can assume normality since p > 0.05
+
+dt %>%
+  group_by(human, version) %>%
+  shapiro_test(Kompetenz)
+# Kompetenz is normally distributed
+
+ggqqplot(dt, "Kompetenz", ggtheme = theme_bw()) +
+  facet_grid(human ~ version)
+
+dt %>% levene_test(Kompetenz ~ human*version)
+#    df1   df2 statistic     p
+#   <int> <int>     <dbl> <dbl>
+#     1     5   456 0.926 0.464
+# --> we can assume the homogeneity of variances in the different groups
+
+
+res.aov <- dt %>% anova_test(Kompetenz ~ human * version)
+res.aov
+# ANOVA Table (type II tests)
+
+#          Effect DFn DFd      F       p p<.05   ges
+# 1         human   1 456 15.612 9.01e-05     * 0.033
+# 2       version   2 456  4.654 1.00e-02     * 0.020
+# 3 human:version   2 456  6.087 2.00e-03     * 0.026
+# -->  statistically significant interaction between human and anthropomorphic version 
+
+# Posthoc test
+
+# Procedure for significant two-way interaction
+# Group the data by humanness and fit  anova
+model <- lm(Kompetenz ~ human * version, data = dt)
+dt %>%
+  group_by(human) %>%
+  anova_test(Kompetenz ~ version, error = model)
+# human Effect    DFn   DFd     F         p `p<.05`      ges
+# * <chr> <chr>   <dbl> <dbl> <dbl>     <dbl> <chr>      <dbl>
+# 1 no    version     2   456 10.7  0.0000299 "*"     0.045   
+# 2 yes   version     2   456  0.08 0.923     ""      0.000352
+# The main effect of version on the Kompetenz is statistically significant only for the digital agent
+# In other words, there is a statistically significant difference in mean Kompetenz 
+# between either NA, WA, SA agents , F(1, 458) = 7.40, p < 0.05
+
+model <- lm(Kompetenz ~ human * version, data = dt)
+dt %>%
+  group_by(version) %>%
+  anova_test(Kompetenz ~ human, error = model)
+# version Effect   DFn   DFd      F          p `p<.05`      ges
+# * <chr>   <chr>  <dbl> <dbl>  <dbl>      <dbl> <chr>      <dbl>
+# 1 NA      human      1   456  7.59  0.006      "*"     0.016   
+# 2 SA      human      1   456  0.151 0.698      ""      0.000331
+# 3 WA      human      1   456 20.0   0.00000955 "*"     0.042 
+# The main effect of humanness on the Kompetenz is statistically significant only for NA and WA
+
+# Compare the Kompetenz of the different versions by humanness:
+pwc <- dt %>% 
+  group_by(human) %>%
+  emmeans_test(Kompetenz ~ version, p.adjust.method = "bonferroni") 
+pwc
+#   human term    .y.       group1 group2    df statistic          p     p.adj p.adj.signif
+# * <chr> <chr>   <chr>     <chr>  <chr>  <dbl>     <dbl>      <dbl>     <dbl> <chr>       
+# 1 no    version Kompetenz NA     SA       456    -2.75  0.00611    0.0183    *           
+# 2 no    version Kompetenz NA     WA       456     1.83  0.0676     0.203     ns          
+# 3 no    version Kompetenz SA     WA       456     4.59  0.00000582 0.0000175 ****        
+# 4 yes   version Kompetenz NA     SA       456     0.388 0.698      1         ns          
+# 5 yes   version Kompetenz NA     WA       456     0.109 0.913      1         ns          
+# 6 yes   version Kompetenz SA     WA       456    -0.279 0.780      1         ns 
+# --> There is a significant difference of Kompetenz only between NA-SA and SA-WA for the agent
+
+
+# Report
+# Visualization: box plots with p-values
+pwc <- pwc %>% add_xy_position(x = "human")
+bxp +
+  stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(res.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
