@@ -1,15 +1,30 @@
 library(data.table)
 library(psych)
+library(purrr)
 library(ggplot2)
 library(tidyverse)
 library(ggpubr)
 library(rstatix)
+library(dplyr)
+library(carData) # MANOVA
+library(car) # MANOVA
+library(broom) # MANOVA
 
 # ------------------Data Loading and Preparation ------------------------
 #load data
 data <- fread("survey_results_manualclean.csv")
 #remove empty rows
 data <- data[-(64),]
+
+# change weiblich/männlich zu 1/0
+data$Dem02 <- str_replace_all(data$Dem02, "weiblich", "1")
+data$Dem02 <- str_replace_all(data$Dem02, "mÃ¤nnlich", "0")
+data$Dem02 <- sapply(data[, Dem02], as.integer)
+
+# change Ja/Nein zu 1/0
+data$ErfahrungBank <- str_replace_all(data$ErfahrungBank, "Ja", "1")
+data$ErfahrungBank <- str_replace_all(data$ErfahrungBank, "Nein", "0")
+data$ErfahrungBank <- sapply(data[, ErfahrungBank], as.integer)
 
 # replace NANs with NA
 is.nan.data.frame <- function(x)
@@ -150,18 +165,43 @@ summary(testmodel)
 
 
 
+# --------------------------- Multiple Regression KompetenzAgent~KompetenzBerater----------------------------
+plot(competenceAll$Agent, competenceAll$Berater, col = competenceAll$Agent)
+
+#Beraterkompetenz abhängig von HM Kompetenz?
+testmodel <- lm(Agent~Berater, data = competenceAll)
+# da p-value: 6.633e-05, leistet das Modell einen Erklärungsbeitrag zur Fragestellung
+# --> Multiple R-squared:  0.1656 -> ich kann ledglich 16.56% der Varianz von Agent erklären (sehr wenig)
+# --> Ändert sich die Kompetenz des Berater um 1 Einheit, steigt die Kompetenz des Agenten um 0.43
+
+# add line to plot which shows the estimated values
+abline(testmodel, col="blue")
+
+summary(testmodel)
+
+
+
 
 # ---------------------------  Pearson Korrelation KompetenzXA~KompetenzBeraterXA----------------------------
 # Voraussetzungen erfüllt gemäss https://www.methodenberatung.uzh.ch/de/datenanalyse_spss/zusammenhaenge/korrelation.html#3.6._Eine_typische_Aussage
 
 #detect outliers using a boxplot
-ggplot(data) +
-  aes(x = "", y = KompetenzBeraterWA) +
+ggplot(competenceAll) +
+  aes(x = "", y = Agent) +
   geom_boxplot(fill = "#0c4c8a") +
   theme_minimal()
 
 # Pearson Korrelation Test
-cor.test(data$KompetenzBeraterWA, data$KompetenzWA)
+cor.test(competenceAll$Berater, competenceAll$Agent)
+# t = 6.7415, df = 229, p-value = 1.26e-10
+# alternative hypothesis: true correlation is not equal to 0
+# 95 percent confidence interval:
+#   0.2932643 0.5092655
+# sample estimates:
+#   cor 
+# 0.4069378 
+
+cor.test(data$KompetenzBeraterNA, data$KompetenzNA)
 # t = 4.2257, df = 75, p-value = 6.633e-05
 # alternative hypothesis: true correlation is not equal to 0
 # 95 percent confidence interval:
@@ -273,7 +313,7 @@ bxp +
   )
 
 
-# ---------------------------   Repeated One-way ANOVA Berater----------------------------
+# --------------------------- Repeated One-way ANOVA Berater----------------------------
 # data preparation
 # extract the 3 competence measure-columns NA, WA, SA
 data_extract_Berater <- data %>% select(id, KompetenzBeraterKL, KompetenzBeraterNA, KompetenzBeraterWA, KompetenzBeraterSA)
@@ -283,7 +323,7 @@ competence_Berater <- data_extract_Berater %>%
   gather(key = "anthro_version", value = "measure", KompetenzBeraterKL, KompetenzBeraterNA, KompetenzBeraterWA, KompetenzBeraterSA) %>% 
   convert_as_factor(id, anthro_version)
 
-# replace all two NA in KL with mean of KL values 3.36 to enable Posthoc test
+# replace two NA in KL with mean of KL values 3.36 to enable Posthoc test
 competence_Berater[is.na(competence_Berater)] <- 3.36
 
 
@@ -294,7 +334,7 @@ competence_Berater %>%
 # A tibble: 3 x 5
 #   anthro_version     variable     n  mean    sd
 #   <fct>              <chr>    <dbl> <dbl> <dbl>
-# 1 KompetenzBeraterKL measure     75  3.36 0.669
+# 1 KompetenzBeraterKL measure     77  3.36 0.66 
 # 2 KompetenzBeraterNA measure     77  3.45 0.522
 # 3 KompetenzBeraterSA measure     77  3.42 0.557
 # 4 KompetenzBeraterWA measure     77  3.44 0.564
@@ -356,3 +396,136 @@ bxp +
     subtitle = get_test_label(res.aov, detailed = TRUE),
     caption = get_pwc_label(pwc)
   )
+
+# --------------------------- One-way MANOVA NA----------------------------
+
+
+# data preparation; select columns
+data_extract_MANOVA <- data %>% 
+  select(id, KompetenzNA, KompetenzBeraterNA, KompetenzWA, KompetenzBeraterWA, KompetenzSA, KompetenzBeraterSA)
+
+dNA <- data %>%
+  select(id, KompetenzNA, KompetenzBeraterNA) %>%
+  rename(Agent = KompetenzNA, Berater = KompetenzBeraterNA) %>%
+  add_column(version="NA")
+
+dWA <- data %>%
+  select(id, KompetenzWA, KompetenzBeraterWA) %>%
+  rename(Agent = KompetenzWA, Berater = KompetenzBeraterWA) %>%
+  add_column(version="WA")
+dSA <- data %>%
+  select(id, KompetenzSA, KompetenzBeraterSA) %>%
+  rename(Agent = KompetenzSA, Berater = KompetenzBeraterSA) %>%
+  add_column(version="SA")
+
+competenceAll <- rbind(dNA, dWA)
+competenceAll <- rbind(competenceAll, dSA)
+# extract column name
+# abb <- sample(colnames(data_extract_MANOVA), 3)
+
+# extract the last two characters of string, e.g. 'NA' or 'WA'
+# abb <- substr(abb, nchar(abb)-1, nchar(abb))
+
+# add column which states anthro version
+# add_column(data_extract_MANOVA, version = abb)
+
+
+# Visualization
+ggboxplot(
+  competenceAll, x = "version", y = c("Agent", "Berater") , 
+  merge = TRUE, palette = "jco"
+)
+
+
+# Compute summary statistics
+competenceAll %>%
+  group_by(version) %>%
+  get_summary_stats(Berater, Agent, type = "mean_sd")
+# version variable     n  mean    sd
+# 1 NA      Agent       77  3.20 0.477
+# 2 NA      Berater     77  3.45 0.522
+# 3 SA      Agent       77  3.45 0.611
+# 4 SA      Berater     77  3.42 0.557
+# 5 WA      Agent       77  3.04 0.578
+# 6 WA      Berater     77  3.44 0.564
+
+# Check outliers
+competenceAll %>%
+  group_by(version) %>%
+  identify_outliers(Berater)
+# --> 2 outliers in WA; none is extreme
+
+competenceAll %>%
+  group_by(version) %>%
+  identify_outliers(Agent)
+# --> 7 outliers in NA, SA, WA; none is extreme
+
+
+# Compute distance by groups and filter outliers
+# Use -id to omit the id column in the computation
+competenceAll %>%
+  group_by(version) %>%
+  mahalanobis_distance(-id) %>%
+  filter(is.outlier == TRUE) %>%
+  as.data.frame()
+
+
+# Check univariate normality assumption
+competenceAll %>%
+  group_by(version) %>%
+  shapiro_test(Agent, Berater) %>%
+  arrange(variable)
+# version variable statistic     p
+# <chr>   <chr>        <dbl> <dbl>
+# 1 NA      Agent        0.976 0.161
+# 2 SA      Agent        0.975 0.124
+# 3 WA      Agent        0.984 0.466
+# 4 NA      Berater      0.985 0.498
+# 5 SA      Berater      0.991 0.870
+# 6 WA      Berater      0.974 0.123
+# --> all are normally distributed
+
+
+# Plot normal distribution
+ggqqplot(competenceAll, "Agent", facet.by = "version",
+         ylab = "Competence Measure", ggtheme = theme_bw())
+ggqqplot(competenceAll, "Berater", facet.by = "version",
+         ylab = "Competence Measure", ggtheme = theme_bw())
+
+# Multivariate normality
+competenceAll %>%
+  select(Agent, Berater) %>%
+  mshapiro_test()
+#     statistic p.value
+#  1     0.977 0.000791
+# --> We cannot assume multivariate normality.
+
+# Identify multicolinearity
+competenceAll %>% cor_test(Agent, Berater)
+# no multicolinearity, as assessed by Pearson correlation (p < 0.001)
+
+# Check the homogeneity of covariances assumption
+box_m(competence_all["measure"], competence_all$anthro_version)
+# p.value 0.360   --> :(
+#Note that, if you have balanced design (i.e., groups with similar sizes), you 
+#don’t need to worry too much about violation of the homogeneity of variances-covariance 
+#matrices and you can continue your analysis.
+#However, having an unbalanced design is problematic. Possible solutions include: 
+#1) transforming the dependent variables; 
+#2) running the test anyway, but using Pillai’s multivariate statistic instead of Wilks’ statistic.
+
+
+#Check the homogneity of variance assumption
+competence_all %>% 
+  levene_test(measure ~ anthro_version)
+# p.value 0.464 --> :(
+# Note that, if you do not have homogeneity of variances, you can try to transform 
+# the outcome (dependent) variable to correct for the unequal variances.
+# Alternatively, you can continue, but accept a lower level of statistical 
+#significance (alpha level) for your MANOVA result. Additionally, any follow-up 
+# univariate ANOVAs will need to be corrected for this violation 
+#(i.e., you will need to use different post-hoc tests).
+
+# Computation MANOVA
+model <- lm(measure ~ anthro_version, competence_all)
+Manova(cbind(KompetenzNA, KompetenzBeraterNA)~id)
