@@ -1,4 +1,4 @@
-#Github token instead password:  4f957a59042f0e723c5bd81e694a57b12b3cd291
+#Github token instead password:  f89287d9f124ebba9f9118f2762c8d7f578ed12b
 
 library(data.table)
 library(psych)
@@ -13,6 +13,7 @@ library(car) # MANOVA
 library(broom) # MANOVA
 library(lavaan) # SEM
 library(emmeans) # two-way ANOVA
+library(corrplot) # visualize Pearson correlation
 
 # ------------------Data Loading and Preparation ------------------------
 #load data
@@ -38,6 +39,7 @@ anthro_table <- data %>%
   select(id, Anthro1NA, Anthro3NA, Anthro5NA, 
          Anthro1WA, Anthro3WA, Anthro5WA, 
          Anthro1SA, Anthro3SA, Anthro5SA) %>%
+  # AnthroXA is the mean of 
   mutate(AnthroNA = (Anthro1NA+Anthro3NA+Anthro5NA)/3) %>%
   mutate(AnthroWA = (Anthro1WA+Anthro3WA+Anthro5WA)/3) %>%
   mutate(AnthroSA = (Anthro1SA+Anthro3SA+Anthro5SA)/3) 
@@ -78,7 +80,7 @@ pow1 <- anthro_table_rearranged %>% slice(78:231)
 pow2 <- anthro_table_rearranged %>% slice(1:77)
 pow3 <- anthro_table_rearranged %>% slice(155:231)
 pow4 <- rbind(pow2, pow3)
-wilcox.test(measure~version, data = pow4, exact=FALSE)
+wilcox.test(measure~version, data = pow, exact=FALSE)
 
 
 # ---------------------------  Pearson Korrelation KompetenzBeraterXA~KompetenzXA----------------------------
@@ -94,7 +96,7 @@ cor.test(data$KompetenzBeraterNA, data$KompetenzNA)
 # sample estimates:
 #   cor 
 # 0.4385202 
-# --> mittlerer bis starker positiver Effekt: Immer Kompetenz des Beraters steigt, steigt Kompetenz von HM
+# --> mittlerer bis starker positiver Effekt: Immer wenn Kompetenz des Beraters steigt, steigt Kompetenz von HM
 
 
 cor.test(data$KompetenzBeraterWA, data$KompetenzWA)
@@ -146,7 +148,7 @@ cor.test(data$KompetenzWA, data$KompetenzBeraterWA)
 # --> mittlerer bis starker positiver Effekt: Immer Kompetenz des HM steigt, steigt Kompetenz von Beraters
 
 
-cor.test(data$KompetenzSA, data$KompetenzBeraterSA)
+cor(data$KompetenzSA, data$KompetenzBeraterSA)
 # t = 3.6911, df = 75, p-value = 0.000421
 # alternative hypothesis: true correlation is not equal to 0
 # 95 percent confidence interval:
@@ -154,9 +156,7 @@ cor.test(data$KompetenzSA, data$KompetenzBeraterSA)
 # sample estimates:
 #   cor 
 # 0.3920805 
-# --> mittlerer bis starker positiver Effekt: Immer Kompetenz des Beraters steigt, steigt Kompetenz von HM
-
-
+# --> mittlerer bis starker positiver Effekt: Immer Kompetenz des HM steigt, steigt Kompetenz von Beraters
 
 
 
@@ -424,12 +424,12 @@ res.aov
 # Posthoc test
 
 # Procedure for significant two-way interaction
-# Group the data by humanness and fit  anova
+# Group the data by humanness and fit anova
 model <- lm(Kompetenz ~ human * version, data = dt)
 dt %>%
   group_by(human) %>%
   anova_test(Kompetenz ~ version, error = model)
-# human Effect    DFn   DFd     F         p `p<.05`      ges
+#    human Effect    DFn   DFd     F         p `p<.05`      ges
 # * <chr> <chr>   <dbl> <dbl> <dbl>     <dbl> <chr>      <dbl>
 # 1 no    version     2   456 10.7  0.0000299 "*"     0.045   
 # 2 yes   version     2   456  0.08 0.923     ""      0.000352
